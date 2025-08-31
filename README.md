@@ -131,8 +131,3 @@ Responsive(some screenshots):
 <img width="632" height="903" alt="2025-08-30 (22)" src="https://github.com/user-attachments/assets/e884dee0-1b81-473d-a5e3-85a039f10428" />
 
 <img width="632" height="916" alt="2025-08-30 (21)" src="https://github.com/user-attachments/assets/a0427d68-ce19-4b52-9a93-7d483f5999cf" />
-
-
-
-
-<img width="651" height="892" alt="2025-08-30 (23)" src="https://github.com/user-attachments/assets/ed8c30e5-8b80-4c53-b831-7246cead636d" />
