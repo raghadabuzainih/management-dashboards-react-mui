@@ -1,0 +1,79 @@
+import { Form, Formik } from 'formik'
+import * as Yup from 'yup'
+import users from '../data/users.json'
+import { useNavigate } from 'react-router-dom'
+import { AuthContext } from '../contexts/AuthContext'
+import { useContext } from 'react'
+import {
+  Container,
+  Typography,
+  Grid,
+  TextField,
+  Button,
+  Box
+} from '@mui/material';
+
+export const Login = () => {
+    const navigate = useNavigate()
+    const {login} = useContext(AuthContext)
+    const initialValues = {
+        email: '',
+        password: ''
+    }
+    const validationSchema = Yup.object({
+        email: Yup.string()
+               .email('invalid email')
+               .test('exists', "incorrect email" , (value)=> 
+                    //wanna check if there is a value && if email (value) is used either by admin or student or instructor (auth)
+                    value && (users.find(user => user.email == value) != undefined)
+                )
+               .required('email is required'),
+        password: Yup.string()
+                  .test('isCorrect', 'incorrect password', function(value){
+                    const {email} = this.parent
+                    return value && (users.find(user => user.email == email && user.password == value) != undefined)
+                  })
+                  .required('password is required')
+    })
+
+    function handleSubmit(values){
+        login(values.email)
+        navigate('/')
+    }
+
+    return(
+        <Container maxWidth="xs" sx={{display:'grid', minHeight:'90vh', alignContent:'center'}}>
+            <Box padding={4} boxShadow={3} width={'100%'}>
+                <Typography color='primary' variant='h5' fontWeight="fontWeightBold" marginBottom={3}>Log in</Typography>
+                <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
+                    {({touched, errors, handleBlur, handleChange}) => (
+                        <Form>
+                            <Grid container spacing={2} direction={'column'}>
+                                <TextField
+                                    name='email'
+                                    label="Email"
+                                    variant="outlined"
+                                    onBlur={handleBlur}
+                                    onChange={handleChange}
+                                    error={touched.email && Boolean(errors.email)}
+                                    helperText={touched.email && errors.email}
+                                />
+                                <TextField
+                                    type='password'
+                                    name='password'
+                                    label="Password"
+                                    variant="outlined"
+                                    onBlur={handleBlur}
+                                    onChange={handleChange}
+                                    error={touched.password && Boolean(errors.password)}
+                                    helperText={touched.password && errors.password}
+                                />
+                                <Button type='submit' variant='contained'>Submit</Button>
+                            </Grid>
+                        </Form>
+                    )}
+                </Formik>
+            </Box>
+        </Container>
+    )
+}
