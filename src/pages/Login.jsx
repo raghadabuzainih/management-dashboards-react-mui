@@ -12,6 +12,9 @@ import {
   Button,
   Box
 } from '@mui/material';
+import { useCallback,useState } from 'react'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 
 export const Login = () => {
     const navigate = useNavigate()
@@ -20,30 +23,34 @@ export const Login = () => {
         email: '',
         password: ''
     }
+    const findUserByEmail = (email) => users.find(user => user.email === email)
     const validationSchema = Yup.object({
         email: Yup.string()
                .email('invalid email')
                .test('exists', "incorrect email" , (value)=> 
-                    //wanna check if there is a value && if email (value) is used either by admin or student or instructor (auth)
-                    value && (users.find(user => user.email == value) != undefined)
+                    //check if email (value) is used either by admin or student or instructor (auth)
+                    findUserByEmail(value)
                 )
                .required('email is required'),
         password: Yup.string()
                   .test('isCorrect', 'incorrect password', function(value){
                     const {email} = this.parent
-                    return value && (users.find(user => user.email == email && user.password == value) != undefined)
+                    const user = findUserByEmail(email)
+                    return user && user.password === value
                   })
                   .required('password is required')
     })
 
-    function handleSubmit(values){
+    const handleSubmit = useCallback((values)=> {
         login(values.email)
         navigate('/')
-    }
+    }, [login, navigate])
+
+    const [showPassword, setShowPassword] = useState(false)
 
     return(
         <Container maxWidth="xs" sx={{display:'grid', minHeight:'90vh', alignContent:'center'}}>
-            <Box padding={4} boxShadow={3} width={'100%'}>
+            <Box sx={{p: 4, boxShadow: 3, width: '100%'}}>
                 <Typography color='primary' variant='h5' fontWeight="fontWeightBold" marginBottom={3}>Log in</Typography>
                 <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
                     {({touched, errors, handleBlur, handleChange}) => (
@@ -52,23 +59,43 @@ export const Login = () => {
                                 <TextField
                                     name='email'
                                     label="Email"
+                                    aria-label='email feild'
                                     variant="outlined"
                                     onBlur={handleBlur}
                                     onChange={handleChange}
-                                    error={touched.email && Boolean(errors.email)}
-                                    helperText={touched.email && errors.email}
+                                    error={Object.keys(errors)[0] == 'email' && touched.email && Boolean(errors.email)}
+                                    helperText={Object.keys(errors)[0] == 'email' && touched.email && errors.email}
                                 />
                                 <TextField
-                                    type='password'
+                                    type={`${showPassword === false ? 'password' : 'text'}`}
                                     name='password'
                                     label="Password"
+                                    aria-label='password field'
                                     variant="outlined"
                                     onBlur={handleBlur}
                                     onChange={handleChange}
-                                    error={touched.password && Boolean(errors.password)}
-                                    helperText={touched.password && errors.password}
+                                    error={Object.keys(errors)[0] == 'password' && touched.password && Boolean(errors.password)}
+                                    helperText={Object.keys(errors)[0] == 'password'  && touched.password && errors.password}
                                 />
-                                <Button type='submit' variant='contained'>Submit</Button>
+                                <Button 
+                                    sx={{
+                                        position:'relative', 
+                                        bottom: '3.8rem',
+                                        width: '10%',
+                                        left: '16rem'
+                                    }}
+                                    onClick={()=> setShowPassword(old => !old)}
+                                >
+                                    {showPassword === false ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                                </Button>
+                                <Button 
+                                    type='submit' 
+                                    variant='contained' 
+                                    aria-label='submit login'
+                                    disabled={Object.keys(errors).length > 0 ? true : false}
+                                >
+                                    Submit
+                                </Button>
                             </Grid>
                         </Form>
                     )}

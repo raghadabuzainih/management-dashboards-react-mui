@@ -1,22 +1,27 @@
-import React from "react"
+import React, { useEffect } from "react"
 import { AuthContext } from "./AuthContext"
 import users from '../data/users.json'
 
-export const AuthProvider = ({children})=>{
-    if(localStorage.getItem('userEmail')){
-           if(new Date().getTime() > JSON.parse(localStorage.getItem('userEmail')).expiry){
+function getStoredUser(){
+    const stored = JSON.parse(localStorage.getItem('userEmail'))
+    if(!stored) return null
+    else{
+        if(new Date().getTime() > stored.expiry){
             localStorage.removeItem('userEmail')
-           }
+            return null
+        }else return stored
     }
-    const [userEmail, setUserEmail] =
-        React.useState(JSON.parse(localStorage.getItem('userEmail')) || null)
+}
+
+export const AuthProvider = ({children})=>{
+    const [userEmail, setUserEmail] = React.useState(getStoredUser)
 
     const login = (email)=>{
         const hours=3
         const item = {
             value: email,
             expiry: new Date().getTime() + (hours*60*60*1000),
-            role: users.find(user=> user.email == email).role
+            role: users.find(user=> user.email === email).role
         }
         localStorage.setItem('userEmail', JSON.stringify(item))
         setUserEmail(item)
@@ -26,6 +31,17 @@ export const AuthProvider = ({children})=>{
         setUserEmail(null)
         localStorage.removeItem('userEmail')
     }
+
+    //auto logout when expiry reached
+    useEffect(()=> {
+        if(!userEmail) return
+        const timer = setInterval(()=> {
+            if(new Date().getTime() > userEmail.expiry){
+                logout()
+            }
+        }, 6000) //check every 1min
+        return() => clearInterval(timer)
+    },[userEmail])
 
     return(
         <AuthContext.Provider value={{userEmail, login, logout}}>

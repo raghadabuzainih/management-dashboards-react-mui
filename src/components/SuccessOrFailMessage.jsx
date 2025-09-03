@@ -1,24 +1,29 @@
 import Snackbar from "@mui/material/Snackbar"
 import Alert from "@mui/material/Alert"
 
-export const SuccessOrFailMessage = (props) => {
+const anchorOrigin = { vertical: "bottom", horizontal: "right" };
+
+export const SuccessOrFailMessage = ({
+    open, 
+    onClose, 
+    severity = 'info', 
+    message,
+    autoHideDuration = 4000
+}) => {
     return(
         <Snackbar 
-            open={props.open} 
-            autoHideDuration={4000} 
-            onClose={props.onClose} 
-            anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'right'
-            }}
+            open={open} 
+            autoHideDuration={autoHideDuration} 
+            onClose={onClose} 
+            anchorOrigin={anchorOrigin}
         >
             <Alert
-                severity={props.severity}
+                severity={severity}
                 variant="filled"
-                onClose={props.onClose}
+                onClose={onClose}
                 sx={{ width: '100%' }}
             >
-                {props.message}
+                {message}
             </Alert>
         </Snackbar>
     )

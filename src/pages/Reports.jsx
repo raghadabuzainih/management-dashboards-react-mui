@@ -16,7 +16,7 @@ import {
 //every import will put in:
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend)
 import { AuthContext } from '../contexts/AuthContext'
-import { useContext } from 'react'
+import { useContext, useMemo } from 'react'
 import {
   Card,
   CardContent,
@@ -24,19 +24,18 @@ import {
   Grid
 } from '@mui/material'
 import { AccessPage } from '../components/AccessPage'
+import { storage } from '../lib/storage'
 
 const Reports = () => {
     const {userEmail} = useContext(AuthContext)
-    let savedCourses = localStorage.getItem('courses') ? 
-                        JSON.parse(localStorage.getItem('courses')) : courses
-    let savedEnrollments = localStorage.getItem('enrollments') ?
-                        JSON.parse(localStorage.getItem('enrollments')) : enrollments
+    let savedCourses = storage.getItem('courses') || courses
+    let savedEnrollments = storage.getItem('enrollments') || enrollments
     //1- students/courses chart info: 
     let coursesNames = savedCourses.map(course => { return course.title })
     let coursesIDs = savedCourses.map(course => { return course.id })
-    let studentCountsPerCourse = coursesIDs.map(courseID => {
+    let studentCountsPerCourse = useMemo (()=> coursesIDs.map(courseID => {
         return savedEnrollments.filter(({courseId}) => courseId == courseID).length
-    })
+    }), [coursesIDs, savedEnrollments])
     const bgColors = coursesNames.map(()=>{
         return `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`
     })
@@ -72,9 +71,9 @@ const Reports = () => {
     let instructors = users.filter(user => user.role == 'Instructor')
     let instructorsNames = instructors.map(inst => {return inst.firstName + " " + inst.lastName})
     let instructorsIDs = instructors.map(inst => {return inst.id})
-    let coursesCountsPerInstructor = instructorsIDs.map(instructorID => {
+    let coursesCountsPerInstructor = useMemo(()=> instructorsIDs.map(instructorID => {
         return savedCourses.filter(({instructorId}) => instructorId == instructorID).length
-    })
+    }), [instructorsIDs, savedCourses])
     const bgColors2 = instructorsNames.map(()=>{
         return `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`
     })

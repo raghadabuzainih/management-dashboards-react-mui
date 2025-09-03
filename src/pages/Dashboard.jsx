@@ -1,7 +1,7 @@
 import users from '../data/users.json'
 import enrollments from '../data/enrollments.json'
 import courses from '../data/courses.json'
-import { useContext } from "react"
+import { useContext, useMemo } from "react"
 import { AuthContext } from "../contexts/AuthContext"
 import {
   Card,
@@ -16,34 +16,28 @@ import {
 import { AccessPage } from '../components/AccessPage'
 import { People, MenuBook, Assignment, Unpublished } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
+import { storage } from '../lib/storage'
 
 export const Dashboard = () => {
     const navigate = useNavigate()
     const {userEmail}= useContext(AuthContext)
-    const students = localStorage.getItem('students') ?
-        JSON.parse(localStorage.getItem('students')) : users.filter(({role}) => role == 'Student')
-    const savedEnrollments = localStorage.getItem('enrollments') ?
-        JSON.parse(localStorage.getItem('enrollments')) : enrollments
-    const savedCourses = localStorage.getItem('courses') ?
-        JSON.parse(localStorage.getItem('courses')) : courses
-    let progressSum = 0
-    savedEnrollments.forEach(({progress})=> progressSum += +progress)
+    const students = storage.getItem('students') || users.filter(({role}) => role == 'Student')
+    const savedEnrollments = storage.getItem('students') || enrollments
+    const savedCourses = storage.getItem('courses') || courses
+    // let progressSum = 0
+    // savedEnrollments.forEach(({progress})=> progressSum += +progress)
+    // another way
+    let progressSum = savedEnrollments.reduce((sum, e)=> sum + Number(e.progress), 0)
 
-    const icons = [
-        <People sx={{fontSize: '5rem'}}/>, 
-        <MenuBook sx={{fontSize: '5rem'}}/>, 
-        <Assignment sx={{fontSize: '5rem'}}/>, 
-        <Unpublished sx={{fontSize: '5rem'}}/>
-    ]
 
-    const counts = {
-        "Total Students": students.length,
-        "Total Courses": savedCourses.length,
-        "Total Enrollments": savedEnrollments.length,
-        "Completion Rate": (progressSum / savedEnrollments.length).toFixed(2) + "%"
-    }
+    const counts = useMemo(()=> ([
+        {name: "Total Students", value: students.length, icon: <People sx={{ fontSize: '5rem' }}/>},
+        {name: "Total Courses", value: savedCourses.length, icon: <MenuBook sx={{ fontSize: '5rem' }}/>},
+        {name: "Total Enrollments", value: savedEnrollments.length, icon: <Assignment sx={{ fontSize: '5rem' }}/>},
+        {name: "Completion Rate", value: savedEnrollments.length > 0 ? (progressSum / savedEnrollments.length).toFixed(2) + "%" : "0%", icon: <Unpublished sx={{ fontSize: '5rem' }}/>},
+    ]), [students, savedCourses, savedEnrollments, progressSum])
 
-    const last_5_students = students.slice(students.length-5, students.length)
+    const last_5_students = useMemo(()=> students.slice(students.length-5, students.length), [students])
     const last_5_studentsMap = last_5_students.map(st =>{
         return <ListItem key={`student-${st.id}`} sx={{display:'grid', textAlign:'center'}}>
             <Typography component={'h2'}>{st.firstName + " " + st.lastName}</Typography>
@@ -56,8 +50,8 @@ export const Dashboard = () => {
         </ListItem>
     })
 
-    let countsToCards = Object.keys(counts).map((key,index) => {
-        return <Card key={`${key}-dashboard-card`} 
+    let countsToCards = useMemo(()=> counts.map((count, index) => {
+        return <Card key={`${index}-dashboard-card`}
                     sx={{
                         width: '35%',
                         height:'70%',
@@ -66,14 +60,14 @@ export const Dashboard = () => {
                         textAlign: 'center'
                     }}>
                     <CardContent sx={{height:'17rem', display:'grid', alignItems:'center'}}>
-                        <Typography component={'h1'} color='info'>{icons[index]}</Typography>
+                        <Typography component={'h1'} color='info'>{count.icon}</Typography>
                         <Box>
-                            <Typography component={'h3'} fontSize={'1.4rem'}>{key}</Typography>
-                            <Typography component={'h1'} color='info' fontSize={'1.2rem'}>{counts[key]}</Typography>
+                            <Typography component={'h3'} fontSize={'1.4rem'}>{count.name}</Typography>
+                            <Typography component={'h1'} color='info' fontSize={'1.2rem'}>{count.value}</Typography>
                         </Box>
                     </CardContent>
                 </Card>   
-    })
+    }), [counts])
     return(
         <Grid 
             container 

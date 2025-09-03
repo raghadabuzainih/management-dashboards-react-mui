@@ -1,38 +1,33 @@
 import Drawer from "@mui/material/Drawer"
-import { Link,useLocation } from "react-router-dom"
+import { Link as RouterLink,useLocation } from "react-router-dom"
 import List from "@mui/material/List"
-import ListItem from "@mui/material/ListItem"
-import { Typography } from "@mui/material"
+import ListItemButton from "@mui/material/ListItemButton"
+import { ListItemIcon, ListItemText } from "@mui/material"
 import { Dashboard, People, MenuBook, Assignment, Assessment, Menu } from "@mui/icons-material"
 
-export const DrawerComp = ({open, setOpen}) => {
+export const DrawerComp = ({open, onClose}) => {
     const location = useLocation()
     const drawerItems = [
-        'Dashboard',
-        'Students',
-        'Courses',
-        'Enrollments',
-        'Reports',
-    ]
-    const drawerItemsIcons = [
-        <Dashboard/>, 
-        <People/>, 
-        <MenuBook/>, 
-        <Assignment/>, 
-        <Assessment/>, 
+        { name: "Dashboard", icon: <Dashboard />, path: "/" },
+        { name: "Students", icon: <People />, path: "/students" },
+        { name: "Courses", icon: <MenuBook />, path: "/courses" },
+        { name: "Enrollments", icon: <Assignment />, path: "/enrollments" },
+        { name: "Reports", icon: <Assessment />, path: "/reports" },
     ]
     let isActive
 
     return( 
         <Drawer 
             open={open} 
-            onClose={()=> setOpen(false)}
+            onClose={onClose}
         >
-            <List sx={{display: 'grid', gap:'1rem', marginTop: '50%'}}>
-                {drawerItems.map((itemName, index) =>{
-                    isActive = itemName == 'Dashboard' ? '/' == location.pathname : `/${itemName.toLowerCase()}` == location.pathname
-                    return <ListItem 
-                                key={`${itemName}-drawerItem`}
+            <List sx={{display: 'grid', gap:'1rem', pt: 8}}>
+                {drawerItems.map(({name, icon, path}) =>{
+                    isActive = path === location.pathname
+                    return <ListItemButton 
+                                key={`${name}-drawerItem`}
+                                component={RouterLink}
+                                to={path}
                                 sx={{
                                     display: "flex", 
                                     gap:'6%',
@@ -44,17 +39,9 @@ export const DrawerComp = ({open, setOpen}) => {
                                     transition: "0.3s"
                                 }} 
                             >
-                                <Typography fontSize={'1px'} color="inheret">{drawerItemsIcons[index]}</Typography>
-                                <Link 
-                                    to={`${itemName == 'Dashboard' ? '/' : `/${itemName.toLowerCase()}`}`}
-                                    style={{
-                                        textDecoration: 'none',
-                                        color:"inherit"
-                                    }} 
-                                    >
-                                        {itemName}
-                                    </Link>
-                            </ListItem>
+                                <ListItemIcon>{icon}</ListItemIcon>
+                                <ListItemText>{name}</ListItemText>
+                            </ListItemButton>
                 })}
             </List>
         </Drawer>

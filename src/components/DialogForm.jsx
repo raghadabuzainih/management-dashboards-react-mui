@@ -1,24 +1,26 @@
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
-import Grid from '@mui/material/Grid'
+import Box from '@mui/material/Box'
 import DialogTitle from '@mui/material/DialogTitle'
 import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import { Formik, Form } from 'formik'
+import { storage } from '../lib/storage'
 
 export const DialogForm = (
     {
         formTitle, condition, setCondition, initialValues, 
         validationSchema, setSuccessAction, setFailedAction,
-        array, arrayName, setArray, item, courseId, purpose
+        array, arrayName, setArray, item, courseId, mode
         //array -> students / enrollments / courses
         //arrayName string like the name of item was stored in local storage
         //item for edit operation
         //courseId for enrollment addForm
+        //mode --> add/edit
     }) => {
 
-    function saveEdit(values, errors){
+    const saveEdit = (values, errors) => {
         setCondition(false)
         if(Object.keys(errors).length > 0){
             setFailedAction(true)
@@ -32,7 +34,7 @@ export const DialogForm = (
         saveToLocalStorageAndShowSuccessMessage(arrayName, updatedArray)
     }
 
-    function addNewItem(values, errors){
+    const addNewItem = (values, errors) => {
         for(let key of Object.keys(values)){
             //if there is at least one item null
             if(!values[key]) return
@@ -43,7 +45,7 @@ export const DialogForm = (
             setFailedAction(true)
             return
         }
-        let newItem = arrayName == 'enrollments' ? 
+        let newItem = arrayName === 'enrollments' ? 
                       {
                         id: `enr_${array.length}`,
                         courseId: courseId,
@@ -53,8 +55,8 @@ export const DialogForm = (
         saveToLocalStorageAndShowSuccessMessage(arrayName, updatedArray)
     }
 
-    function saveToLocalStorageAndShowSuccessMessage(arrayName, updatedArray){
-       localStorage.setItem(arrayName, JSON.stringify(updatedArray))
+    const saveToLocalStorageAndShowSuccessMessage = (arrayName, updatedArray)=>{
+       storage.setItem(arrayName, updatedArray)
        setArray(updatedArray)
        setSuccessAction(true)
     }
@@ -73,6 +75,11 @@ export const DialogForm = (
                 <Formik
                     initialValues={initialValues}
                     validationSchema={validationSchema}
+                    onSubmit={(values, {setSubmitting})=>{
+                        if(mode =='edit') saveEdit(values, {})
+                        else if(mode =='add') addNewItem(values, {})
+                        setSubmitting(false)
+                    }}
                 >
                 {({values, touched, errors, handleBlur, handleChange}) => (
                     <Form style={{
@@ -84,29 +91,26 @@ export const DialogForm = (
                     }}>
                         {Object.keys(initialValues).map(fieldName =>
                             //key={fieldName} becaues name of input or field is unique
-                            <Grid container key={`${arrayName}-${fieldName}-input`}>
+                            <Box display={'flex'} key={`${arrayName}-${fieldName}-input`}>
                                 <TextField
                                     name={fieldName}
                                     label={fieldName}
+                                    placeholder={`enter ${fieldName}`}
                                     variant="outlined"
                                     //set value to dynamic value using values state from formik
                                     //becaues of we assign it to constant value we can't edit on it
                                     value={values[fieldName]}
                                     onBlur={handleBlur}
                                     onChange={handleChange}
-                                    error={touched[fieldName] && Boolean(errors[fieldName])}
-                                    helperText={touched[fieldName] && errors[fieldName]}
+                                    //Object.keys(errors)[0] == fieldName --> only the first wrong field value will shown -- best UI practise
+                                    error={Object.keys(errors)[0] == fieldName && touched[fieldName] && Boolean(errors[fieldName])}
+                                    helperText={Object.keys(errors)[0] == fieldName && touched[fieldName] && errors[fieldName]}
                                 />
-                            </Grid>
+                            </Box>
                         )}
                         <DialogActions sx={{display: 'block',width: '100%'}}>
                             <Button 
-                                type='submit' 
-                                onClick={()=> 
-                                    purpose == 'edit' ? 
-                                    saveEdit(values, errors) : 
-                                    addNewItem(values, errors)
-                                }
+                                type='submit'
                                 color='success'
                                 variant='contained'
                             >

@@ -1,28 +1,29 @@
-import {AppBar, Typography, Grid, Button} from '@mui/material'
+import {AppBar, Typography, Grid, Box, Button} from '@mui/material'
 import { useContext } from "react"
 import { AuthContext } from "../contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
 import { DarkMode, LightMode,Menu } from '@mui/icons-material'
+import { ThemeModeContext } from '../contexts/ThemeModeContext'
 
-export const AppBarComp = ({theme,updateTheme,setIsMenuClicked})=> {
+export const AppBarComp = ({onToggleDrawer})=> {
     const navigate = useNavigate()
     const {userEmail, logout}= useContext(AuthContext)
+    const {mode, setMode} = useContext(ThemeModeContext)
     function handleTheme(){
-        const newTheme = theme == 'light' ? 'dark' : 'light'
-        updateTheme(newTheme)
+        const newTheme = mode === 'light' ? 'dark' : 'light'
+        setMode(newTheme)
         localStorage.setItem('mode', newTheme)
     }
     return(
         <AppBar>
-            <Grid display={'flex'} justifyContent={'space-around'} alignItems={'center'}>
+            <Box display={'flex'} justifyContent={'space-around'} alignItems={'center'}>
                 {userEmail&& <Button 
+                    aria-label='show-drawer-icon'
                     color="inherit" 
                     sx={{
                         pr: '1rem'
                     }}
-                    onClick={()=>{
-                        setIsMenuClicked(true)
-                    }}
+                    onClick={onToggleDrawer}
                 >
                     <Menu/>
                 </Button>}
@@ -50,13 +51,14 @@ export const AppBarComp = ({theme,updateTheme,setIsMenuClicked})=> {
                     {
                         <Button
                             color='warning'
+                            aria-label='theme-icon'
                             onClick={handleTheme}
                             >
-                                {theme == 'light' ? <DarkMode color='action'/> : <LightMode />}
+                                {mode === 'light' ? <DarkMode color='action'/> : <LightMode />}
                             </Button>
                     }
                 </Grid>
-            </Grid>
+            </Box>
         </AppBar>
     )
 }

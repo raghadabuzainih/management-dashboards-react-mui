@@ -2,15 +2,23 @@ import Box from "@mui/material/Box"
 import { AppBarComp } from "./AppBarComp"
 import { DrawerComp } from "./DrawerComp"
 import { Outlet } from "react-router-dom"
-import { useState } from "react"
+import { useState, useCallback } from "react"
 
-export const AppBarAndDrawer= ({theme, updateTheme}) => {
-    const [isMenuClicked, setIsMenuClicked]= useState(false)
-    return <Box>
-        <AppBarComp theme={theme} updateTheme={updateTheme} setIsMenuClicked={setIsMenuClicked}/>
-        <DrawerComp open={isMenuClicked} setOpen={setIsMenuClicked}/>
-        <Box marginTop={'3%'}>
+export const AppBarAndDrawer= () => {
+    const [isDrawerOpen, setIsDrawerOpen]= useState(false)
+    const handleTokkgleDrawer = useCallback(()=> {
+        setIsDrawerOpen(prev => !prev)
+    }, [])
+    return (
+    <>
+        <AppBarComp onToggleDrawer={handleTokkgleDrawer}/>
+        <DrawerComp 
+            open={isDrawerOpen} 
+            onClose={()=> setIsDrawerOpen(false)}
+        />
+        <Box sx={{mt: 3}}>
             <Outlet />
         </Box>
-    </Box>
+    </>
+    )
 }

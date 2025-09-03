@@ -5,12 +5,11 @@ import users from '../data/users.json'
 //--> add new student or edit not effect because add/edit forms contain info like info in users.json
 //edit/add form don't contain enrollments or courses
 import enrollments from '../data/enrollments.json'
-import { Link } from 'react-router-dom'
 import * as Yup from 'yup'
 import { DialogForm } from '../components/DialogForm'
 import { SuccessOrFailMessage } from '../components/SuccessOrFailMessage'
 import { AuthContext } from '../contexts/AuthContext'
-import { useContext } from 'react'
+import { useContext, useReducer } from 'react'
 import { DataGrid } from '@mui/x-data-grid'
 import {
   Box,
@@ -25,27 +24,33 @@ import {
 import { ModeEdit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material'
 import { AccessPage } from '../components/AccessPage'
 import { useNavigate } from 'react-router-dom'
+import { storage } from '../lib/storage'
 
 const Students = () => {
     const navigate = useNavigate()
     const {userEmail} = useContext(AuthContext)
-    const [students, setStudents] = 
-        React.useState(localStorage.getItem('students') ?
-        JSON.parse(localStorage.getItem('students')) :
-        users.filter(({role}) => role == 'Student'))
+    const [students, setStudents] = React.useState(storage.getItem('students') || users.filter(({role}) => role == 'Student'))
     
         //run only the first time
-    if(localStorage.getItem('enrollments') == null){
-        localStorage.setItem('enrollments', JSON.stringify(enrollments))
+    if(storage.getItem('enrollments') == null){
+        storage.setItem('enrollments', enrollments)
     }
-    const [isEditClicked, setIsEditClicked] = React.useState(false)
-    const [openSuccessEdited, setopenSuccessEdited] = React.useState(false)
-    const [openFailedEdited, setopenFailedEdited] = React.useState(false)
-    const [isDeleteClicked, setIsDeleteClicked] = React.useState(false)
-    const [openSuccessDeleted, setOpenSuccessDeleted] = React.useState(false)
-    const [isAddClicked, setIsAddClicked] = React.useState(false)
-    const [openSuccessAdded, setopenSuccessAdded] = React.useState(false)
-    const [openFailedAdded, setopenFailedAdded] = React.useState(false)
+    const [dialogs, setDialogs] = useReducer(
+        (state, action) => ({
+            ...state,
+            [action.type]: action.value
+        }),
+        {
+            isEditClicked: false,
+            openSuccessEdited: false,
+            openFailedEdited: false,
+            isAddClicked: false,
+            openSuccessAdded: false,
+            openFailedAdded: false,
+            isDeleteClicked: false,
+            openSuccessDeleted: false
+        }
+    )
     //store student id for edit & delete dialogs
     const [studentId, setStudentId] = React.useState('')
     //get data of the student to show it in edit dialog at the first time(initialValues)
@@ -75,10 +80,10 @@ const Students = () => {
             disableColumnMenu: true,
             renderCell: (params) => (
                 <Box display={'flex'} gap={1}>
-                    <Button sx={{cursor: 'pointer'}} onClick={()=> openEditDialog(params.id)}>
+                    <Button aria-label='edit student info' sx={{cursor: 'pointer'}} onClick={()=> openEditDialog(params.id)}>
                         <EditIcon sx={{color: 'red'}}/>
                     </Button>
-                    <Button sx={{cursor:'pointer'}} onClick={()=> openDeleteDialog(params.id)}>
+                    <Button aria-label='delete student' sx={{cursor:'pointer'}} onClick={()=> openDeleteDialog(params.id)}>
                         <DeleteIcon sx={{color: 'green'}}/>
                     </Button>
                 </Box>
@@ -152,36 +157,33 @@ const Students = () => {
                     .matches(/^[a-zA-Z0-9/_-]+$/, 'enter valid path')
                     .test('pathPattern', 'enter like "/students/{id}"', function(value){
                         const parent = this.parent
-                        value == '/students/' + parent['id']
+                        return value == '/students/' + parent['id']
                     })
                     .test('uniquePath', 'enter unique path "/students/{id}"', (value)=>
                         students.find(st => st.profileURL == value && st!= student)== undefined
                     )
     })
-
-    const validationEditFormSchema = commonValidation
-    const validationAddFormSchema = commonValidation
     
     function openEditDialog(id) {
-        setIsEditClicked(true)
+        setDialogs({type: 'isEditClicked', value: true})
         setStudentId(id)
     }
     
     function openDeleteDialog(id) {
-        setIsDeleteClicked(true)
+        setDialogs({type: 'isDeleteClicked', value: true})
         setStudentId(id)
     }
 
     function deleteStudent(){
         const studentsAfterDelete = students.filter(student => student.id != studentId)
-        localStorage.setItem('students', JSON.stringify(studentsAfterDelete))
-        const savedEnrollments = JSON.parse(localStorage.getItem('enrollments'))
+        storage.setItem('students', studentsAfterDelete)
+        const savedEnrollments = storage.getItem('enrollments')
         //delete all student enrollments because this student will deleted from students
         const updatedEnrollments = savedEnrollments.filter(en => en.studentId != studentId)
-        localStorage.setItem('enrollments', JSON.stringify(updatedEnrollments))
+        storage.setItem('enrollments', updatedEnrollments)
         setStudents(studentsAfterDelete)
-        setIsDeleteClicked(false)
-        setOpenSuccessDeleted(true)
+        setDialogs({ type: "isDeleteClicked", value: false })
+        setDialogs({ type: "openSuccessDeleted", value: true })
     }
 
     return (
@@ -191,6 +193,7 @@ const Students = () => {
                     <DataGrid
                         rows={rows}
                         columns={columns}
+                        autoHeight
                         initialState={{
                             pagination: {
                                 paginationModel: {
@@ -204,81 +207,84 @@ const Students = () => {
                     {/* edit dialog form */}
                     <DialogForm
                         formTitle='Edit Student Info'
-                        condition={isEditClicked}
-                        setCondition= {setIsEditClicked}
+                        condition={dialogs.isEditClicked}
+                        setCondition= {(value)=> setDialogs({type: 'isEditClicked', value: value})}
                         initialValues={initialEditFormValues}
-                        validationSchema = {validationEditFormSchema}
-                        setSuccessAction ={setopenSuccessEdited}
-                        setFailedAction ={setopenFailedEdited}
+                        validationSchema = {commonValidation}
+                        setSuccessAction ={(value)=> setDialogs({type: 'openSuccessEdited', value: value})}
+                        setFailedAction ={(value)=> setDialogs({type: 'openFailedEdited', value: value})}
                         array= {students}
                         arrayName= 'students'
                         setArray= {setStudents}
                         item= {student}
-                        purpose= 'edit'
+                        mode= 'edit'
                     />
                     {/* successful edit */}
                     <SuccessOrFailMessage
-                        open={openSuccessEdited}
-                        onClose={()=> setopenSuccessEdited(false)}
+                        open={dialogs.openSuccessEdited}
+                        onClose={() => setDialogs({ type: "openSuccessEdited", value: false })}
                         severity="success"
                         message="Student Info edited successfully"
                     />
                     {/* failed edit */}
                     <SuccessOrFailMessage
-                        open={openFailedEdited}
-                        onClose={()=> setopenFailedEdited(false)}
+                        open={dialogs.openFailedEdited}
+                        onClose={() => setDialogs({ type: "openFailedEdited", value: false })}
                         severity="error"
                         message="Failed to edit student info"
                     />
                     {/* delete dialog */}
-                    <Dialog open={isDeleteClicked} onClose={()=> setIsDeleteClicked(false)}>
+                    <Dialog 
+                        open={dialogs.isDeleteClicked} 
+                        onClose={() => setDialogs({ type: "isDeleteClicked", value: false })}
+                    >
                         <DialogContent>
                             <DialogContentText>
                                 Are you sure that you want to delete this student?
                             </DialogContentText>
                         </DialogContent>
                         <DialogActions>
-                            <Button onClick={()=> deleteStudent()}>Yes</Button>
-                            <Button onClick={()=> setIsDeleteClicked(false)}>No</Button>
+                            <Button onClick={() => deleteStudent()}>Yes</Button>
+                            <Button onClick={() => setDialogs({ type: "isDeleteClicked", value: false })}>No</Button>
                         </DialogActions>
                     </Dialog>
                     {/* successful delete */}
                     <SuccessOrFailMessage
-                        open={openSuccessDeleted}
-                        onClose={()=> setOpenSuccessDeleted(false)}
+                        open={dialogs.openSuccessDeleted}
+                        onClose={() => setDialogs({ type: "openSuccessDeleted", value: false })}
                         severity="success"
                         message="Student deleted successfully"
                     />
                     {/* add dialog form */}
                     <DialogForm
                         formTitle='Add New Student'
-                        condition={isAddClicked}
-                        setCondition= {setIsAddClicked}
+                        condition={dialogs.isAddClicked}
+                        setCondition={(value) => setDialogs({ type: "isAddClicked", value })}
                         initialValues={initialAddFormValues}
-                        validationSchema = {validationAddFormSchema}
-                        setSuccessAction ={setopenSuccessAdded}
-                        setFailedAction ={setopenFailedAdded}
-                        array= {students}
-                        arrayName = 'students'
-                        setArray= {setStudents}
-                        purpose= 'add'
+                        validationSchema={commonValidation}
+                        setSuccessAction={(value) => setDialogs({ type: "openSuccessAdded", value })}
+                        setFailedAction={(value) => setDialogs({ type: "openFailedAdded", value })}
+                        array={students}
+                        arrayName='students'
+                        setArray={setStudents}
+                        mode='add'
                     />
                     {/* successful add */}
                     <SuccessOrFailMessage
-                        open={openSuccessAdded}
-                        onClose={()=> setopenSuccessAdded(false)}
+                        open={dialogs.openSuccessAdded}
+                        onClose={() => setDialogs({ type: "openSuccessAdded", value: false })}
                         severity="success"
                         message="Student added successfully"
                     />
                     {/* failed add */}
                     <SuccessOrFailMessage
-                        open={openFailedAdded}
-                        onClose={()=> setopenFailedAdded(false)}
+                        open={dialogs.openFailedAdded}
+                        onClose={() => setDialogs({ type: "openFailedAdded", value: false })}
                         severity="error"
                         message="Failed to add new student"
                     />
                     <Box sx={{position:'fixed', bottom:'3%', right:'2%'}}>
-                        <Fab color='primary' onClick={()=> setIsAddClicked(true)}>
+                        <Fab aria-label='add student' color='primary' onClick={() => setDialogs({ type: "isAddClicked", value: true })}>
                             <AddIcon />
                         </Fab>
                     </Box>
