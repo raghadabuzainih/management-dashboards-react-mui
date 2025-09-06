@@ -5,13 +5,13 @@ import { Outlet } from "react-router-dom"
 import { useState, useCallback } from "react"
 
 export const AppBarAndDrawer= () => {
-    const [isDrawerOpen, setIsDrawerOpen]= useState(false)
-    const handleTokkgleDrawer = useCallback(()=> {
+    const [isDrawerOpen, setIsDrawerOpen]= useState<boolean>(false)
+    const handleToggleDrawer = useCallback(()=> {
         setIsDrawerOpen(prev => !prev)
     }, [])
     return (
     <>
-        <AppBarComp onToggleDrawer={handleTokkgleDrawer}/>
+        <AppBarComp onToggleDrawer={handleToggleDrawer}/>
         <DrawerComp 
             open={isDrawerOpen} 
             onClose={()=> setIsDrawerOpen(false)}

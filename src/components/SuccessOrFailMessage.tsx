@@ -1,7 +1,15 @@
-import Snackbar from "@mui/material/Snackbar"
+import Snackbar, { SnackbarOrigin } from "@mui/material/Snackbar"
 import Alert from "@mui/material/Alert"
 
-const anchorOrigin = { vertical: "bottom", horizontal: "right" };
+const anchorOrigin: SnackbarOrigin = { vertical: "bottom", horizontal: "right" }
+
+interface props{
+    open: boolean,
+    onClose: ()=> void,
+    severity: 'error' | 'warning' | 'info' | 'success',
+    message: string,
+    autoHideDuration?: number
+}
 
 export const SuccessOrFailMessage = ({
     open, 
@@ -9,7 +17,7 @@ export const SuccessOrFailMessage = ({
     severity = 'info', 
     message,
     autoHideDuration = 4000
-}) => {
+}: props) => {
     return(
         <Snackbar 
             open={open} 

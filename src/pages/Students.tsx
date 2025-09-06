@@ -10,7 +10,7 @@ import { DialogForm } from '../components/DialogForm'
 import { SuccessOrFailMessage } from '../components/SuccessOrFailMessage'
 import { AuthContext } from '../contexts/AuthContext'
 import { useContext, useReducer } from 'react'
-import { DataGrid } from '@mui/x-data-grid'
+import { DataGrid, GridRenderCellParams, GridColDef } from '@mui/x-data-grid'
 import {
   Box,
   Button,
@@ -25,11 +25,16 @@ import { ModeEdit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui
 import { AccessPage } from '../components/AccessPage'
 import { useNavigate } from 'react-router-dom'
 import { storage } from '../lib/storage'
+import {Role} from '../types/User'
+import { Student } from '../types/Student'
+import { Enrollment } from '../types/Enrollment'
 
 const Students = () => {
     const navigate = useNavigate()
-    const {userEmail} = useContext(AuthContext)
-    const [students, setStudents] = React.useState(storage.getItem('students') || users.filter(({role}) => role == 'Student'))
+    const authContext = useContext(AuthContext)
+    if(!authContext) throw new Error('auth context not defined')
+    const {userEmail}= authContext
+    const [students, setStudents] = React.useState<Student[]>(storage.getItem('students') || users.filter(({role}) => role == Role.Student))
     
         //run only the first time
     if(storage.getItem('enrollments') == null){
@@ -52,11 +57,11 @@ const Students = () => {
         }
     )
     //store student id for edit & delete dialogs
-    const [studentId, setStudentId] = React.useState('')
+    const [studentId, setStudentId] = React.useState<string>('')
     //get data of the student to show it in edit dialog at the first time(initialValues)
-    const student = students.find(student => student.id == studentId)
+    const student: Student | undefined = students.find(student => student.id == studentId)
 
-    const columns = [
+    const columns: GridColDef<Student>[] = [
         { field: 'id', headerName: 'ID', width: 90 },
         { field: 'firstName', headerName: 'First Name', width: 120 },
         { field: 'lastName', headerName: 'Last Name', width: 120 },
@@ -66,43 +71,44 @@ const Students = () => {
             field: 'profileURL',
             headerName: 'Profile URL',
             width: 180,
-            renderCell: (params) => (
-                <Button variant='contained' size='small' onClick={()=> navigate(params.value)}>
+            renderCell: (params: GridRenderCellParams<Student, string>) => (
+                <Button variant='contained' size='small' onClick={()=> navigate(params.value as string)}>
                     {params.value}
                 </Button>
             )
         },
         {
+            field: 'actions',
             headerName: 'Edit / Delete',
             width: 150,
             sortable: false,
             filterable: false,
             disableColumnMenu: true,
-            renderCell: (params) => (
+            renderCell: (params: GridRenderCellParams<Student, string>) => (
                 <Box display={'flex'} gap={1}>
-                    <Button aria-label='edit student info' sx={{cursor: 'pointer'}} onClick={()=> openEditDialog(params.id)}>
+                    <Button aria-label='edit student info' sx={{cursor: 'pointer'}} onClick={()=> openEditDialog(params.id as string)}>
                         <EditIcon sx={{color: 'red'}}/>
                     </Button>
-                    <Button aria-label='delete student' sx={{cursor:'pointer'}} onClick={()=> openDeleteDialog(params.id)}>
+                    <Button aria-label='delete student' sx={{cursor:'pointer'}} onClick={()=> openDeleteDialog(params.id as string)}>
                         <DeleteIcon sx={{color: 'green'}}/>
                     </Button>
                 </Box>
             )
         }
     ]
-    const rows = students
-    const initialEditFormValues = {
-        id: student?.id, //this (?) because student undefined before we press edit button..
+    const rows: Student[] = students
+    const initialEditFormValues: Omit<Student, 'role'> = {
+        id: student?.id || '', //this (?) because student undefined before we press edit button..
                          //because we catch student id when click edit button then find the student
-        firstName: student?.firstName,
-        lastName: student?.lastName,
-        email: student?.email,
-        password: student?.password,
-        phone: student?.phone,
-        profileURL: student?.profileURL,
+        firstName: student?.firstName || '',
+        lastName: student?.lastName || '',
+        email: student?.email || '',
+        password: student?.password || '',
+        phone: student?.phone || '',
+        profileURL: student?.profileURL || '',
     }
 
-    const initialAddFormValues = {
+    const initialAddFormValues: Omit<Student, 'role'> = {
         id: `stu_0${students.length+1}`,
         firstName: "",
         lastName: "",
@@ -114,11 +120,11 @@ const Students = () => {
     }
 
     //Regular Expressions for testing: 
-    const numberRegExp = /^[0-9]+$/
-    const englishCharactersOnly = /^[A-Za-z]+$/
-    const englishCharactersAndAcceptedSpaces = /^[A-Za-z\s]+$/
-    const englishWithNumsAndSymbols = /^[A-Za-z0-9!@#$%^&*(),.?":{}|<>_\-\s]+$/
-    const phoneNumberRegExp = /^\+970-5[69]\d{7}$/
+    const numberRegExp: RegExp = /^[0-9]+$/
+    const englishCharactersOnly: RegExp = /^[A-Za-z]+$/
+    const englishCharactersAndAcceptedSpaces: RegExp = /^[A-Za-z\s]+$/
+    const englishWithNumsAndSymbols: RegExp = /^[A-Za-z0-9!@#$%^&*(),.?":{}|<>_\-\s]+$/
+    const phoneNumberRegExp: RegExp = /^\+970-5[69]\d{7}$/
 
     const commonValidation = Yup.object({
         id: Yup.string()
@@ -164,22 +170,22 @@ const Students = () => {
                     )
     })
     
-    function openEditDialog(id) {
+    function openEditDialog(id: string): void {
         setDialogs({type: 'isEditClicked', value: true})
         setStudentId(id)
     }
     
-    function openDeleteDialog(id) {
+    function openDeleteDialog(id: string): void {
         setDialogs({type: 'isDeleteClicked', value: true})
         setStudentId(id)
     }
 
-    function deleteStudent(){
-        const studentsAfterDelete = students.filter(student => student.id != studentId)
+    function deleteStudent(): void{
+        const studentsAfterDelete: Student[] = students.filter(student => student.id != studentId)
         storage.setItem('students', studentsAfterDelete)
-        const savedEnrollments = storage.getItem('enrollments')
+        const savedEnrollments: Enrollment[] = storage.getItem('enrollments')
         //delete all student enrollments because this student will deleted from students
-        const updatedEnrollments = savedEnrollments.filter(en => en.studentId != studentId)
+        const updatedEnrollments: Enrollment[] = savedEnrollments.filter(en => en.studentId != studentId)
         storage.setItem('enrollments', updatedEnrollments)
         setStudents(studentsAfterDelete)
         setDialogs({ type: "isDeleteClicked", value: false })
@@ -188,7 +194,7 @@ const Students = () => {
 
     return (
         <Container sx={{marginTop: '4rem'}}>
-            {userEmail?.role=='Admin' ?
+            {userEmail?.role=== Role.Admin ?
                 <>
                     <DataGrid
                         rows={rows}

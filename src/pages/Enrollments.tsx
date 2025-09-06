@@ -26,15 +26,21 @@ import { useMemo } from 'react'
 import { storage } from '../lib/storage'
 
 import { AccessPage } from '../components/AccessPage'
+import { Enrollment } from '../types/Enrollment'
+import { Student } from '../types/Student'
+import { Course } from '../types/Course'
+
+import { Role } from '../types/User'
 
 const Enrollments = () => {
-    const {userEmail} = useContext(AuthContext)
+    const authContext = useContext(AuthContext)
+    if(!authContext) throw new Error('auth context not defined')
+    const {userEmail}= authContext
     const [savedEnrollments, setSavedEnrollments] = 
-        React.useState(storage.getItem('enrollments') || enrollments)
-    console.log(storage.getItem('students'))
+        React.useState<Enrollment[]>(storage.getItem('enrollments') || enrollments)
 
-    const students = storage.getItem('students') || users.filter(({role}) => role === 'Student') 
-    let savedCourses = storage.getItem('courses') || courses
+    const students: Student[] = storage.getItem('students') || users.filter(({role}) => role === 'Student') 
+    let savedCourses: Course[] = storage.getItem('courses') || courses
     
     const [dialogs, setDialogs] = useReducer(
             (state, action) => ({
@@ -60,13 +66,20 @@ const Enrollments = () => {
     let editedOrDeletedStudentName = editedOrDeletedStudent?.firstName + " " + editedOrDeletedStudent?.lastName
     //using this for add new enrollment for course
     let courseID = storage.getItem('courseId')
+
+    interface studentEnrollment{
+        id: string,
+        stName: string,
+        progress: number
+    }
     
     //we will use these lines to make courses enrollments cards
     const enrollmentsMap = useMemo(()=> {
         let map = new Map() //using map to make key always unique
         savedEnrollments.map(en => {
             let courseName = savedCourses.find(course => course.id === en.courseId)?.title
-            let student = students.find(st => st.id === en.studentId)
+            let student: Student | undefined = students.find(st => st.id === en.studentId)
+            if(!student) throw new Error('student not defined')
             let studentName = student.firstName + " " + student.lastName
             map.set(
                 //key, value => courseName, array of objects that contain student name & his progress
@@ -83,7 +96,7 @@ const Enrollments = () => {
 
     let enrollmentsMapToCards = Array.from(enrollmentsMap.entries()).map(([courseName, enrollment]) => {
         return(
-            <Grid item>
+            <Grid>
                 <ListItem key={`${courseName}-listItem`}>
                     <Card sx={{
                         width: '25rem', 
@@ -110,7 +123,7 @@ const Enrollments = () => {
                                     paddingBottom:'1.4rem'
                                 }}
                             >
-                                {enrollment ? enrollment.map(en => {
+                                {enrollment ? enrollment.map((en: studentEnrollment) => {
                                     return <Grid display={'flex'} gap={'1rem'} alignItems={'center'} justifyContent={'space-between'}>
                                         <Typography flexGrow={1} component={'p'}>{en.stName}</Typography>
                                         <Box position={'relative'} right={'3%'}>
@@ -156,7 +169,9 @@ const Enrollments = () => {
                                 sx={{width:'100%'}}
                                 onClick={()=> {
                                     setDialogs({ type: "isAddClicked", value: true })
-                                    const courseId = savedCourses.find(course => course.title === courseName).id
+                                    const course = savedCourses.find(course => course.title === courseName)
+                                    if(!course) throw new Error('course not defined')
+                                    const courseId: string = course.id
                                     storage.setItem('courseId', courseId)
                                 }}
                             >
@@ -182,12 +197,12 @@ const Enrollments = () => {
 
     let initialAddFormValues = {
         studentId: "",
-        progress: "" 
+        progress: 0
     }
 
     let addFormValidationSchema = Yup.object({
         studentId: Yup.string().required('enter student id')
-            .test('existStudent', 'student not exist', (value)=> students.find(({id})=> id === value))
+            .test('existStudent', 'student not exist', (value)=> {return students.find(({id})=> id === value) !== undefined})
             //prevent repeated enrollment if the student enrolled before at the same course(instedof it: edit his progress)
             .test('enrolledBefore', 'student enrolled before', (value)=> {
                 const courseEnrollments = savedEnrollments.filter(({courseId}) => courseId === courseID)
@@ -215,7 +230,7 @@ const Enrollments = () => {
                 marginTop:'5rem', 
                 paddingBottom:'3%',
             }}>
-            {userEmail?.role === 'Admin' ? <>
+            {userEmail?.role === Role.Admin ? <>
                 <Grid container justifyContent={'center'} width={'90%'} marginLeft={'4%'}>{enrollmentsMapToCards}</Grid>
                     {/* edit dialog form */}
                     <DialogForm
@@ -263,7 +278,7 @@ const Enrollments = () => {
                     />
                 {/* successful add */}
                 <SuccessOrFailMessage
-                    pen={dialogs.openSuccessAdded}
+                    open={dialogs.openSuccessAdded}
                     onClose={() => setDialogs({ type: "openSuccessAdded", value: false })}
                     severity="success"
                     message="Enrollment added successfully"

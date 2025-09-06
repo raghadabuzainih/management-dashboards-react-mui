@@ -18,19 +18,27 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 
 export const Login = () => {
     const navigate = useNavigate()
-    const {login} = useContext(AuthContext)
-    const initialValues = {
+    const authContext = useContext(AuthContext)
+    if(!authContext) throw new Error('auth context not defined')
+    const {login} = authContext
+
+    interface loginFields{
+        email: string,
+        password: string
+    }
+
+    const initialValues: loginFields = {
         email: '',
         password: ''
     }
-    const findUserByEmail = (email) => users.find(user => user.email === email)
+    const findUserByEmail = (email: string) => users.find(user => user.email === email)
     const validationSchema = Yup.object({
         email: Yup.string()
                .email('invalid email')
-               .test('exists', "incorrect email" , (value)=> 
+               .test('exists', "incorrect email" , (value)=> {
                     //check if email (value) is used either by admin or student or instructor (auth)
-                    findUserByEmail(value)
-                )
+                    return value !== undefined && findUserByEmail(value) !== undefined
+                })
                .required('email is required'),
         password: Yup.string()
                   .test('isCorrect', 'incorrect password', function(value){
@@ -41,7 +49,7 @@ export const Login = () => {
                   .required('password is required')
     })
 
-    const handleSubmit = useCallback((values)=> {
+    const handleSubmit = useCallback((values: loginFields)=> {
         login(values.email)
         navigate('/')
     }, [login, navigate])
@@ -63,8 +71,8 @@ export const Login = () => {
                                     variant="outlined"
                                     onBlur={handleBlur}
                                     onChange={handleChange}
-                                    error={Object.keys(errors)[0] == 'email' && touched.email && Boolean(errors.email)}
-                                    helperText={Object.keys(errors)[0] == 'email' && touched.email && errors.email}
+                                    error={Boolean(Object.keys(errors)[0] == 'email' && touched.email && errors.email)}
+                                    helperText={(Object.keys(errors)[0] == 'email' && touched.email && errors.email)? errors.email : ''}
                                 />
                                 <TextField
                                     type={`${showPassword === false ? 'password' : 'text'}`}
@@ -74,8 +82,8 @@ export const Login = () => {
                                     variant="outlined"
                                     onBlur={handleBlur}
                                     onChange={handleChange}
-                                    error={Object.keys(errors)[0] == 'password' && touched.password && Boolean(errors.password)}
-                                    helperText={Object.keys(errors)[0] == 'password'  && touched.password && errors.password}
+                                    error={Boolean(Object.keys(errors)[0] == 'password' && touched.password && errors.password)}
+                                    helperText={Boolean(Object.keys(errors)[0] == 'password' && touched.password && errors.password)}
                                 />
                                 <Button 
                                     sx={{

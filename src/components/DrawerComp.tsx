@@ -1,20 +1,31 @@
 import Drawer from "@mui/material/Drawer"
-import { Link as RouterLink,useLocation } from "react-router-dom"
+import { Link as RouterLink, useLocation } from "react-router-dom"
 import List from "@mui/material/List"
 import ListItemButton from "@mui/material/ListItemButton"
 import { ListItemIcon, ListItemText } from "@mui/material"
 import { Dashboard, People, MenuBook, Assignment, Assessment, Menu } from "@mui/icons-material"
 
-export const DrawerComp = ({open, onClose}) => {
+interface props{
+    open: boolean,
+    onClose: ()=> void
+}
+
+interface items{
+    name: string,
+    icon: React.ReactNode,
+    path: string
+}
+
+export const DrawerComp = ({open, onClose}: props) => {
     const location = useLocation()
-    const drawerItems = [
+    const drawerItems: items[] = [
         { name: "Dashboard", icon: <Dashboard />, path: "/" },
         { name: "Students", icon: <People />, path: "/students" },
         { name: "Courses", icon: <MenuBook />, path: "/courses" },
         { name: "Enrollments", icon: <Assignment />, path: "/enrollments" },
         { name: "Reports", icon: <Assessment />, path: "/reports" },
     ]
-    let isActive
+    let isActive: boolean
 
     return( 
         <Drawer 

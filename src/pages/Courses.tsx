@@ -27,9 +27,17 @@ import AddIcon from '@mui/icons-material/Add'
 
 import { AccessPage } from '../components/AccessPage'
 
+import { Course } from '../types/Course'
+import { User, Role } from '../types/User'
+
+const allUsers = users as User[]
+
 const Courses = () => {
-    const {userEmail}= useContext(AuthContext)
-    const [allCourses, setAllCourses] = React.useState(storage.getItem('courses') || courses)
+    const authContext = useContext(AuthContext)
+    //because authContext maybe return null
+    if(!authContext) throw new Error('auth context not found')
+    const {userEmail} = authContext
+    const [allCourses, setAllCourses] = React.useState<Course[]>(storage.getItem('courses') || courses)
     const [dialogs, setDialogs] = useReducer(
         (state, action) => ({
             ...state,
@@ -48,29 +56,29 @@ const Courses = () => {
         }
     )
     //store course id for edit & delete dialogs
-    const [courseId, setCourseId] = React.useState('')
+    const [courseId, setCourseId] = React.useState<string>('')
     //get data of the course to show it in edit dialog at the first time(initialValues)
-    let course = allCourses.find(({id}) => id === courseId)
+    let course: Course | undefined = allCourses.find(({id}) => id === courseId)
 
-    const initialEditFormValues = {
-        id: course?.id,
-        title: course?.title,
-        instructorId: course?.instructorId,
-        hours: course?.hours,
-        description: course?.description
+    const initialEditFormValues: Course = {
+        id: course?.id || '',
+        title: course?.title || '',
+        instructorId: course?.instructorId || '',
+        hours: course?.hours || 0,
+        description: course?.description || ''
     }
 
-    const initialAddFormValues = {
+    const initialAddFormValues: Course = {
         id: `crs_0${allCourses.length+1}`,
         title: "",
         instructorId: "",
-        hours: "",
+        hours: 0,
         description: ""
     }
 
     //Regular Expressions for testing: 
-    const numberRegExp = /^[0-9]+$/
-    const englishWithNumsAndSymbols = /^[A-Za-z0-9!@#$%^&*(),.?"':{}/|<>_\-\s]+$/
+    const numberRegExp: RegExp = /^[0-9]+$/
+    const englishWithNumsAndSymbols: RegExp = /^[A-Za-z0-9!@#$%^&*(),.?"':{}/|<>_\-\s]+$/
 
     const commonValidation = Yup.object({
         id: Yup.string()
@@ -90,19 +98,19 @@ const Courses = () => {
         instructorId: Yup.string()
                       .required('enter instructor id')
                       .test('checkInstID', 'instructor not exists', (value)=>
-                      users.find(({id})=> id=== value) != undefined),
+                      allUsers.find(({id})=> id=== value) != undefined),
         description: Yup.string()
                     .required('enter course description')
                     .matches(englishWithNumsAndSymbols, 'write only english letters'),
-        hours: Yup.string()
+        hours: Yup.number()
                .required('enter hours')
-               .matches(/^[0-9]+$/, "Must be only digits")
-                .test('checkHourRange', 'enter number between 1-100', (value) => 
-                value >= 1 && value <= 100)          
+               .min(1, 'must be >= 1')
+               .max(100, 'must be <= 100')         
     })
 
     const coursesInLists = React.useMemo(()=> allCourses.map((course, index) => {
-        const instructor = users.find(({id})=> id === course.instructorId)
+        const instructor: User | undefined = allUsers.find(({id})=> id === course.instructorId)
+        if(!instructor) throw new Error('instructor is not defined')
         const instructorFullName = instructor.firstName + " " + instructor.lastName
         return(
             <Grid key={`accordion-course-${index}`} width={'30%'}>
@@ -144,7 +152,7 @@ const Courses = () => {
     }), [allCourses])
 
     function deleteCourse(){
-        const coursesAfterDelete = allCourses.filter(course => course.id != courseId)
+        const coursesAfterDelete: Course[] = allCourses.filter(course => course.id != courseId)
         storage.setItem('courses', coursesAfterDelete)
         setAllCourses(coursesAfterDelete)
         setDialogs({ type: 'isDeleteClicked', value: true })
@@ -153,7 +161,7 @@ const Courses = () => {
 
     return(
         <Container sx={{marginTop:'5rem'}}>
-            {userEmail?.role=== 'Admin' ?
+            {userEmail?.role === Role.Admin ?
             <>
                 <Grid container spacing={2} justifyContent={'center'}>{coursesInLists}</Grid>
                 <Box sx={{position:'fixed', bottom:'3%', right:'2%'}}>

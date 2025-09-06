@@ -5,10 +5,29 @@ import Box from '@mui/material/Box'
 import DialogTitle from '@mui/material/DialogTitle'
 import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
-import { Formik, Form } from 'formik'
+import { Formik, Form, FormikValues } from 'formik'
 import { storage } from '../lib/storage'
+import { Dispatch, SetStateAction } from 'react'
+import * as Yup from 'yup'
 
-export const DialogForm = (
+interface props<T>{
+    formTitle: string,
+    condition: boolean, 
+    setCondition: (value: boolean)=> void, 
+    initialValues: Partial<T>, 
+    //because maybe not every items collected
+    validationSchema: Yup.ObjectSchema<any>, 
+    setSuccessAction: (value: boolean)=> void,
+    setFailedAction: (value: boolean)=> void,
+    array: T[],
+    arrayName: string, 
+    setArray: Dispatch<SetStateAction<T[]>>, 
+    item?: T | undefined, 
+    courseId?: string, 
+    mode: 'add' | 'edit'
+}
+
+export const DialogForm = <T extends FormikValues>(
     {
         formTitle, condition, setCondition, initialValues, 
         validationSchema, setSuccessAction, setFailedAction,
@@ -18,9 +37,9 @@ export const DialogForm = (
         //item for edit operation
         //courseId for enrollment addForm
         //mode --> add/edit
-    }) => {
+    }: props<T>) => {
 
-    const saveEdit = (values, errors) => {
+    const saveEdit = (values: Partial<T>, errors: Partial<Record<keyof T, string>>) => {
         setCondition(false)
         if(Object.keys(errors).length > 0){
             setFailedAction(true)
@@ -28,13 +47,13 @@ export const DialogForm = (
         }
 
         let updatedArray = array.map(x => {
-            if(x == item) return {...item, ...values} //because enrollment edit form contains only progress
+            if(x == item) return {...item, ...values} as T //because enrollment edit form contains only progress
             return x
         })
         saveToLocalStorageAndShowSuccessMessage(arrayName, updatedArray)
     }
 
-    const addNewItem = (values, errors) => {
+    const addNewItem = (values: Partial<T>, errors: Partial<Record<keyof T, string>>) => {
         for(let key of Object.keys(values)){
             //if there is at least one item null
             if(!values[key]) return
@@ -51,11 +70,11 @@ export const DialogForm = (
                         courseId: courseId,
                         ...values
                       } : values
-        let updatedArray = [...array, newItem]
+        let updatedArray = [...array, newItem] as T[]
         saveToLocalStorageAndShowSuccessMessage(arrayName, updatedArray)
     }
 
-    const saveToLocalStorageAndShowSuccessMessage = (arrayName, updatedArray)=>{
+    const saveToLocalStorageAndShowSuccessMessage = (arrayName: string, updatedArray: T[])=>{
        storage.setItem(arrayName, updatedArray)
        setArray(updatedArray)
        setSuccessAction(true)
@@ -103,8 +122,8 @@ export const DialogForm = (
                                     onBlur={handleBlur}
                                     onChange={handleChange}
                                     //Object.keys(errors)[0] == fieldName --> only the first wrong field value will shown -- best UI practise
-                                    error={Object.keys(errors)[0] == fieldName && touched[fieldName] && Boolean(errors[fieldName])}
-                                    helperText={Object.keys(errors)[0] == fieldName && touched[fieldName] && errors[fieldName]}
+                                    error={Boolean(Object.keys(errors)[0] == fieldName && touched[fieldName] && errors[fieldName])}
+                                    helperText={Boolean(Object.keys(errors)[0] == fieldName && touched[fieldName] && errors[fieldName])}
                                 />
                             </Box>
                         )}

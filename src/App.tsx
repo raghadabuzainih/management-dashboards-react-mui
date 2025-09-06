@@ -5,9 +5,10 @@ import { ThemeProvider, CssBaseline } from "@mui/material"
 import { useState, useMemo } from "react"
 import { BuildTheme } from "./contexts/ThemeContext"
 import { ThemeModeContext } from "./contexts/ThemeModeContext"
+import { storage } from "./lib/storage"
 
-export const App = () => {
-    const [mode, setMode] = useState(localStorage.getItem('mode')||'light')
+export const App=() => {
+    const [mode, setMode] = useState<'light' | 'dark'>(storage.getItem('mode') || 'light')
     const theme = useMemo(()=> BuildTheme(mode), [mode]) //to avoid rebuild theme every rerender
     
     return(

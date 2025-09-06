@@ -13,19 +13,27 @@ import {
 } from '@mui/material';
 import { AccessPage } from "../components/AccessPage"
 import { storage } from "../lib/storage"
+import { Student } from "../types/Student"
+import { Enrollment } from "../types/Enrollment"
+import { Course } from "../types/Course"
+
+import { Role, User } from "../types/User"
+const allUsers = users as User[]
 
 const StudentDetails = () => {
-    const {userEmail} = useContext(AuthContext)
-    const students = storage.getItem('students') || users.filter(({role}) => role == 'Student')
-    const savedEnrollments = storage.getItem('enrollments') || enrollments
-    const savedCourses = storage.getItem('courses') || courses
+    const authContext = useContext(AuthContext)
+    if(!authContext) throw new Error('auth context not defined')
+    const {userEmail}= authContext
+    const students: Student[] = storage.getItem('students') || users.filter(({role}) => role == 'Student')
+    const savedEnrollments: Enrollment[] = storage.getItem('enrollments') || enrollments
+    const savedCourses: Course[] = storage.getItem('courses') || courses
     const {id} = useParams()
-    const student = students.find(st=> st.id == id)
-    const studentEnrollments = savedEnrollments.filter(({studentId})=> studentId == id)
+    const student: Student | undefined = students.find(st=> st.id == id)
+    const studentEnrollments: Enrollment[] | undefined = savedEnrollments.filter(({studentId})=> studentId == id)
 
     return(
         <Container maxWidth="md" sx={{py:4, justifyItems:'center',marginTop:'4rem'}}>
-            {userEmail?.role =='Admin' ?
+            {userEmail?.role === Role.Admin ?
             <>
                 {/* check if student exists, because id parameter maybe false id or not exist */}
                 {student ? <>
@@ -55,8 +63,11 @@ const StudentDetails = () => {
                 <Grid container justifyContent={'center'} spacing={2}>
                     {studentEnrollments.length === 0 && 'No Enrollments yet'}
                     {studentEnrollments.map(en => {
-                        let {title, instructorId, hours} = savedCourses.find(({id})=> id == en.courseId)
-                        let instructor = users.find(({id})=> id == instructorId)
+                        const course = savedCourses.find(({id})=> id == en.courseId)
+                        if(!course) throw new Error('course not defined')
+                        let {title, instructorId, hours} = course
+                        let instructor: User | undefined = allUsers.find(({id})=> id == instructorId)
+                        if(!instructor) throw new Error('instructor not defined')
                         return (
                           <Card
                             key={en.courseId}
