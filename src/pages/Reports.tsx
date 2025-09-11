@@ -15,8 +15,7 @@ import {
 } from 'chart.js';
 //every import will put in:
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend)
-import { AuthContext } from '../contexts/AuthContext'
-import { useContext, useMemo } from 'react'
+import { useMemo } from 'react'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Container from '@mui/material/Container'
@@ -26,14 +25,13 @@ import { storage } from '../lib/storage'
 import { Course } from '../types/Course'
 import { Enrollment } from '../types/Enrollment'
 import { User,Role } from '../types/User'
+import { useAuthContext } from '../hooks/UseAuthContext'
 
 const allUsers = users as User[]
 
 const Reports = () => {
-    const authContext = useContext(AuthContext)
-    if(!authContext) throw new Error('auth context not defined')
-    const {userEmail}= authContext
-    let savedCourses: Course[] = storage.getItem('courses') as Course[] || courses
+    const {userEmail}= useAuthContext()
+    let savedCourses: Course[] = storage.getItem('courses') || courses
     let savedEnrollments: Enrollment[] = storage.getItem('enrollments') || enrollments
     //1- students/courses chart info: 
     let coursesNames: string[] = savedCourses.map(course => { return course.title })

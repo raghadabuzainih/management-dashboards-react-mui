@@ -4,8 +4,6 @@ import users from '../data/users.json'
 import courses from '../data/courses.json'
 import { SuccessOrFailMessage } from "../components/SuccessOrFailMessage"
 import { DialogForm } from "../components/DialogForm"
-import { useContext, useReducer } from "react"
-import { AuthContext } from "../contexts/AuthContext"
 import Accordion from "@mui/material/Accordion"
 import AccordionDetails from "@mui/material/AccordionDetails"
 import AccordionSummary from "@mui/material/AccordionSummary"
@@ -29,34 +27,19 @@ import { AccessPage } from '../components/AccessPage'
 
 import { Course } from '../types/Course'
 import { User, Role } from '../types/User'
+import { useAuthContext } from '../hooks/UseAuthContext'
+import { useArray } from '../hooks/UseArray'
+import { useDialogs } from '../hooks/UseDialogs'
+import { useSelectedID } from '../hooks/UseSelectedID'
 
 const allUsers = users as User[]
 
 const Courses = () => {
-    const authContext = useContext(AuthContext)
-    //because authContext maybe return null
-    if(!authContext) throw new Error('auth context not found')
-    const {userEmail} = authContext
-    const [allCourses, setAllCourses] = React.useState<Course[]>(storage.getItem('courses') || courses)
-    const [dialogs, setDialogs] = useReducer(
-        (state, action) => ({
-            ...state,
-            [action.type]: action.value
-        }),
-        {
-            //initial values
-            isEditClicked: false,
-            openSuccessEdited: false,
-            openFailedEdited: false,
-            isAddClicked: false,
-            openSuccessAdded: false,
-            openFailedAdded: false,
-            isDeleteClicked: false,
-            openSuccessDeleted: false
-        }
-    )
+    const {userEmail} = useAuthContext()
+    const [allCourses, updateCourses] = useArray<Course>(courses, 'courses')
+    const [dialogs, updateCondition] = useDialogs()
     //store course id for edit & delete dialogs
-    const [courseId, setCourseId] = React.useState<string>('')
+    const [courseId, updateCourseID] = useSelectedID()
     //get data of the course to show it in edit dialog at the first time(initialValues)
     let course: Course | undefined = allCourses.find(({id}) => id === courseId)
 
@@ -131,15 +114,15 @@ const Courses = () => {
                         <Grid container spacing={1} justifyContent={'center'}>
                             <Button aria-label='edit course info' color='success' variant='contained' onClick={()=> {
                                 //these two lines we will use it for edit dialog form
-                                setCourseId(course.id)
-                                setDialogs({ type: 'isEditClicked', value: true })
+                                updateCourseID(course.id)
+                                updateCondition({ type: 'isEditClicked', value: true })
                             }}
                             >
                                 Edit
                             </Button>
                             <Button aria-label='delete course' color='error' variant='contained' onClick={()=> {
-                                setCourseId(course.id)
-                                setDialogs({ type: 'isDeleteClicked', value: true })
+                                updateCourseID(course.id)
+                                updateCondition({ type: 'isDeleteClicked', value: true })
                             }}
                             >
                                 Delete
@@ -154,9 +137,9 @@ const Courses = () => {
     function deleteCourse(){
         const coursesAfterDelete: Course[] = allCourses.filter(course => course.id != courseId)
         storage.setItem('courses', coursesAfterDelete)
-        setAllCourses(coursesAfterDelete)
-        setDialogs({ type: 'isDeleteClicked', value: true })
-        setDialogs({ type: 'openSuccessDeleted', value: true })
+        updateCourses(coursesAfterDelete)
+        updateCondition({ type: 'isDeleteClicked', value: true })
+        updateCondition({ type: 'openSuccessDeleted', value: true })
     }
 
     return(
@@ -165,7 +148,7 @@ const Courses = () => {
             <>
                 <Grid container spacing={2} justifyContent={'center'}>{coursesInLists}</Grid>
                 <Box sx={{position:'fixed', bottom:'3%', right:'2%'}}>
-                    <Fab aria-label='add new course' color='primary' onClick={()=> setDialogs({ type: 'isAddClicked', value: true })}>
+                    <Fab aria-label='add new course' color='primary' onClick={()=> updateCondition({ type: 'isAddClicked', value: true })}>
                         <AddIcon />
                     </Fab>
                 </Box>
@@ -173,33 +156,33 @@ const Courses = () => {
                 <DialogForm
                     formTitle='Add New Course'
                     condition={dialogs.isEditClicked}
-                    setCondition= {(value)=> setDialogs({type: 'isEditClicked', value: value})}
+                    setCondition= {(value)=> updateCondition({type: 'isEditClicked', value: value})}
                     initialValues={initialEditFormValues}
                     validationSchema = {commonValidation}
-                    setSuccessAction ={(value)=> setDialogs({type: 'openSuccessEdited', value: value})}
-                    setFailedAction ={(value)=> setDialogs({type: 'openFailedEdited', value: value})}
+                    setSuccessAction ={(value)=> updateCondition({type: 'openSuccessEdited', value: value})}
+                    setFailedAction ={(value)=> updateCondition({type: 'openFailedEdited', value: value})}
                     array= {allCourses}
                     arrayName= 'courses'
-                    setArray= {setAllCourses}
+                    updateArray= {updateCourses}
                     item= {course}
                     mode= 'edit'
                 />
                 {/* successful edit */}
                 <SuccessOrFailMessage
                     open={dialogs.openSuccessEdited}
-                    onClose={()=> setDialogs({type: 'openSuccessEdited', value: false})}
+                    onClose={()=> updateCondition({type: 'openSuccessEdited', value: false})}
                     severity="success"
                     message="Course Info edited successfully"
                 />
                 {/* failed edit */}
                 <SuccessOrFailMessage
                     open={dialogs.openFailedEdited}
-                    onClose={()=> setDialogs({type: 'openFailedEdited', value: false})}
+                    onClose={()=> updateCondition({type: 'openFailedEdited', value: false})}
                     severity="error"
                     message="Failed to edit course info"
                 />
                 {/* delete dialog */}
-                <Dialog open={dialogs.isDeleteClicked} onClose={()=> setDialogs({type: 'isDeleteClicked', value: false})}>
+                <Dialog open={dialogs.isDeleteClicked} onClose={()=> updateCondition({type: 'isDeleteClicked', value: false})}>
                     <DialogContent>
                         <DialogContentText>
                             Are you sure that you want to delete this course?
@@ -207,13 +190,13 @@ const Courses = () => {
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={()=> deleteCourse()}>Yes</Button>
-                        <Button onClick={()=> setDialogs({type: 'isDeleteClicked', value: false})}>No</Button>
+                        <Button onClick={()=> updateCondition({type: 'isDeleteClicked', value: false})}>No</Button>
                     </DialogActions>
                 </Dialog>
                 {/* successful delete */}
                 <SuccessOrFailMessage
                     open={dialogs.openSuccessDeleted}
-                    onClose={()=> setDialogs({type: 'openSuccessDeleted', value: false})}
+                    onClose={()=> updateCondition({type: 'openSuccessDeleted', value: false})}
                     severity="success"
                     message="Course deleted successfully"
                 />
@@ -221,27 +204,27 @@ const Courses = () => {
                 <DialogForm
                     formTitle='Edit Course Info'
                     condition={dialogs.isAddClicked}
-                    setCondition= {(value)=> setDialogs({type: 'isAddClicked', value: value})}
+                    setCondition= {(value)=> updateCondition({type: 'isAddClicked', value: value})}
                     initialValues={initialAddFormValues}
                     validationSchema = {commonValidation}
-                    setSuccessAction ={(value)=> setDialogs({type: 'openSuccessAdded', value: value})}
-                    setFailedAction ={(value)=> setDialogs({type: 'openFailedAdded', value: value})}
+                    setSuccessAction ={(value)=> updateCondition({type: 'openSuccessAdded', value: value})}
+                    setFailedAction ={(value)=> updateCondition({type: 'openFailedAdded', value: value})}
                     array= {allCourses}
                     arrayName = 'courses'
-                    setArray= {setAllCourses}
+                    updateArray= {updateCourses}
                     mode= 'add'
                 />
                 {/* successful add */}
                 <SuccessOrFailMessage
                     open={dialogs.openSuccessAdded}
-                    onClose={()=> setDialogs({type: 'openSuccessAdded', value: false})}
+                    onClose={()=> updateCondition({type: 'openSuccessAdded', value: false})}
                     severity="success"
                     message="Course added successfully"
                 />
                 {/* failed add */}
                 <SuccessOrFailMessage
                     open={dialogs.openFailedAdded}
-                    onClose={()=> setDialogs({type: 'openFailedAdded', value: false})}
+                    onClose={()=> updateCondition({type: 'openFailedAdded', value: false})}
                     severity="error"
                     message="Failed to add new course"
                 />

@@ -1,8 +1,7 @@
 import users from '../data/users.json'
 import enrollments from '../data/enrollments.json'
 import courses from '../data/courses.json'
-import { useContext, useMemo } from "react"
-import { AuthContext } from "../contexts/AuthContext"
+import { useMemo } from "react"
 import {
   Card,
   CardContent,
@@ -21,14 +20,13 @@ import { Student } from '../types/Student'
 import { Enrollment } from '../types/Enrollment'
 import { Course } from '../types/Course'
 import { Role } from '../types/User'
+import { useAuthContext } from '../hooks/UseAuthContext';
 
 export const Dashboard = () => {
     const navigate = useNavigate()
-    const authContext = useContext(AuthContext)
-    if(!authContext) throw new Error('auth context not defined')
-    const {userEmail}= authContext
+    const {userEmail}= useAuthContext()
     const students: Student[] = storage.getItem('students') || users.filter(({role}) => role == 'Student')
-    const savedEnrollments: Enrollment[] = storage.getItem('students') || enrollments
+    const savedEnrollments: Enrollment[] = storage.getItem('enrollments') || enrollments
     const savedCourses: Course[] = storage.getItem('courses') || courses
     // let progressSum = 0
     // savedEnrollments.forEach(({progress})=> progressSum += +progress)

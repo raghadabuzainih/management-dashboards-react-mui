@@ -2,8 +2,6 @@ import enrollments from '../data/enrollments.json'
 import users from '../data/users.json'
 import courses from '../data/courses.json'
 import React from 'react'
-import { useContext, useReducer } from 'react'
-import { AuthContext } from '../contexts/AuthContext'
 import * as Yup from 'yup'
 import { DialogForm } from '../components/DialogForm'
 import { SuccessOrFailMessage } from '../components/SuccessOrFailMessage'
@@ -31,35 +29,21 @@ import { Student } from '../types/Student'
 import { Course } from '../types/Course'
 
 import { Role } from '../types/User'
+import { useAuthContext } from '../hooks/UseAuthContext'
+import { useArray } from '../hooks/UseArray'
+import { useDialogs } from '../hooks/UseDialogs'
+import { useSelectedID } from '../hooks/UseSelectedID'
 
 const Enrollments = () => {
-    const authContext = useContext(AuthContext)
-    if(!authContext) throw new Error('auth context not defined')
-    const {userEmail}= authContext
-    const [savedEnrollments, setSavedEnrollments] = 
-        React.useState<Enrollment[]>(storage.getItem('enrollments') || enrollments)
+    const {userEmail}= useAuthContext()
+    const [savedEnrollments, update] = useArray<Enrollment>(enrollments, 'enrollments')
 
     const students: Student[] = storage.getItem('students') || users.filter(({role}) => role === 'Student') 
     let savedCourses: Course[] = storage.getItem('courses') || courses
     
-    const [dialogs, setDialogs] = useReducer(
-            (state, action) => ({
-                ...state,
-                [action.type]: action.value
-            }),
-            {
-                isEditClicked: false,
-                openSuccessEdited: false,
-                openFailedEdited: false,
-                isAddClicked: false,
-                openSuccessAdded: false,
-                openFailedAdded: false,
-                isDeleteClicked: false,
-                openSuccessDeleted: false
-            }
-    )
+    const [dialogs, updateCondition] = useDialogs()
     //store enrollmentId for edit/delete operations
-    const [enrollmentId, setEnrollmentId] = React.useState('')
+    const [enrollmentId, updateID] = useSelectedID()
     let enrollment = useMemo(()=> savedEnrollments.find(({id}) => id === enrollmentId), [savedEnrollments, enrollmentId])
     //show student name in edit/delete enrollment dialog title
     let editedOrDeletedStudent = useMemo(()=> students.find(({id})=> id === enrollment?.studentId), [students, enrollment])
@@ -67,7 +51,7 @@ const Enrollments = () => {
     //using this for add new enrollment for course
     let courseID = storage.getItem('courseId')
 
-    interface studentEnrollment{
+    type studentEnrollment ={
         id: string,
         stName: string,
         progress: number
@@ -142,8 +126,8 @@ const Enrollments = () => {
                                                 aria-label='edit student progress'
                                                 label="Edit progress"
                                                 onClick={()=> {
-                                                    setEnrollmentId(en.id)
-                                                    setDialogs({type: 'isEditClicked', value: true})
+                                                    updateID(en.id)
+                                                    updateCondition({type: 'isEditClicked', value: true})
                                                 }}
                                                 color='success'
                                             />
@@ -152,8 +136,8 @@ const Enrollments = () => {
                                                 aria-label='unenroll student'
                                                 label="UnEnroll"
                                                 onClick={()=> {
-                                                    setEnrollmentId(en.id)
-                                                    setDialogs({type: 'isDeleteClicked', value: true})
+                                                    updateID(en.id)
+                                                    updateCondition({type: 'isDeleteClicked', value: true})
                                                 }}
                                                 color='error'
                                             />
@@ -168,7 +152,7 @@ const Enrollments = () => {
                                 variant='contained'
                                 sx={{width:'100%'}}
                                 onClick={()=> {
-                                    setDialogs({ type: "isAddClicked", value: true })
+                                    updateCondition({ type: "isAddClicked", value: true })
                                     const course = savedCourses.find(course => course.title === courseName)
                                     if(!course) throw new Error('course not defined')
                                     const courseId: string = course.id
@@ -185,7 +169,7 @@ const Enrollments = () => {
     })
 
     //for operations -> edit, add, delete
-    let initialEditFormValues= {
+    let initialEditFormValues: Pick<Enrollment, 'progress'>= {
         progress: enrollment?.progress || 0
     }
 
@@ -195,7 +179,7 @@ const Enrollments = () => {
             .max(100, 'must be <= 100')
     })
 
-    let initialAddFormValues = {
+    let initialAddFormValues: Pick<Enrollment, 'studentId'| 'progress'> = {
         studentId: "",
         progress: 0
     }
@@ -214,11 +198,11 @@ const Enrollments = () => {
     })
 
     function deleteEnrollment(){
-        setDialogs({type: 'IsDeleteClicked', value: false}) //to close delete dialog
+        updateCondition({type: 'isDeleteClicked', value: false}) //to close delete dialog
         const updatedEnrollments = savedEnrollments.filter(({id})=> id != enrollmentId)
         storage.setItem('enrollments', updatedEnrollments)
-        setSavedEnrollments(updatedEnrollments)
-        setDialogs({ type: "openSuccessDeleted", value: true })
+        update(updatedEnrollments)
+        updateCondition({ type: "openSuccessDeleted", value: true })
     }
     
     return(
@@ -236,28 +220,28 @@ const Enrollments = () => {
                     <DialogForm
                         formTitle={`Edit ${editedOrDeletedStudentName} progress`}
                         condition={dialogs.isEditClicked}
-                        setCondition= {(value)=> setDialogs({type: 'isEditClicked', value: value})}
+                        setCondition= {(value)=> updateCondition({type: 'isEditClicked', value: value})}
                         initialValues={initialEditFormValues}
                         validationSchema = {editFormValidationSchema}
-                        setSuccessAction ={(value)=> setDialogs({type: 'openSuccessEdited', value: value})}
-                        setFailedAction ={(value)=> setDialogs({type: 'openFailedEdited', value: value})}
+                        setSuccessAction ={(value)=> updateCondition({type: 'openSuccessEdited', value: value})}
+                        setFailedAction ={(value)=> updateCondition({type: 'openFailedEdited', value: value})}
                         array= {savedEnrollments}
                         arrayName= 'enrollments'
-                        setArray= {setSavedEnrollments}
+                        updateArray= {update}
                         item= {enrollment}
                         mode= 'edit'
                     />
                     {/* successful edit */}
                     <SuccessOrFailMessage
                         open={dialogs.openSuccessEdited}
-                        onClose={() => setDialogs({ type: "openSuccessEdited", value: false })}
+                        onClose={() => updateCondition({ type: "openSuccessEdited", value: false })}
                         severity="success"
                         message="Enrollment Info edited successfully"
                     />
                     {/* failed edit */}
                     <SuccessOrFailMessage
                         open={dialogs.openFailedEdited}
-                        onClose={() => setDialogs({ type: "openFailedEdited", value: false })}
+                        onClose={() => updateCondition({ type: "openFailedEdited", value: false })}
                         severity="error"
                         message="Failed to edit enrollment info"
                     />
@@ -265,35 +249,35 @@ const Enrollments = () => {
                     <DialogForm
                         formTitle='Add New Enrollment'
                         condition={dialogs.isAddClicked}
-                        setCondition={(value) => setDialogs({ type: "isAddClicked", value })}
+                        setCondition={(value) => updateCondition({ type: "isAddClicked", value })}
                         initialValues={initialAddFormValues}
                         validationSchema = {addFormValidationSchema}
-                        setSuccessAction={(value) => setDialogs({ type: "openSuccessAdded", value })}
-                        setFailedAction={(value) => setDialogs({ type: "openFailedAdded", value })}
+                        setSuccessAction={(value) => updateCondition({ type: "openSuccessAdded", value })}
+                        setFailedAction={(value) => updateCondition({ type: "openFailedAdded", value })}
                         array= {savedEnrollments}
                         arrayName = 'enrollments'
-                        setArray= {setSavedEnrollments}
+                        updateArray= {update}
                         courseId ={courseID}
                         mode= 'add'
                     />
                 {/* successful add */}
                 <SuccessOrFailMessage
                     open={dialogs.openSuccessAdded}
-                    onClose={() => setDialogs({ type: "openSuccessAdded", value: false })}
+                    onClose={() => updateCondition({ type: "openSuccessAdded", value: false })}
                     severity="success"
                     message="Enrollment added successfully"
                 />
                 {/* failed add */}
                 <SuccessOrFailMessage
                     open={dialogs.openFailedAdded}
-                    onClose={() => setDialogs({ type: "openFailedAdded", value: false })}
+                    onClose={() => updateCondition({ type: "openFailedAdded", value: false })}
                     severity="error"
                     message="Failed to add new enrollment"
                 />
                 {/* delete dialog */}
                 <Dialog 
                     open={dialogs.isDeleteClicked} 
-                    onClose={() => setDialogs({ type: "isDeleteClicked", value: false })}
+                    onClose={() => updateCondition({ type: "isDeleteClicked", value: false })}
                 >
                     <DialogContent>
                         <DialogContentText>
@@ -302,13 +286,13 @@ const Enrollments = () => {
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={()=> deleteEnrollment()}>Yes</Button>
-                        <Button onClick={() => setDialogs({ type: "isDeleteClicked", value: false })}>No</Button>
+                        <Button onClick={() => updateCondition({ type: "isDeleteClicked", value: false })}>No</Button>
                     </DialogActions>
                 </Dialog>
                 {/* successful delete */}
                 <SuccessOrFailMessage
                     open={dialogs.openSuccessDeleted}
-                    onClose={() => setDialogs({ type: "openSuccessDeleted", value: false })}
+                    onClose={() => updateCondition({ type: "openSuccessDeleted", value: false })}
                     severity="success"
                     message="Enrollment deleted successfully"
                 />

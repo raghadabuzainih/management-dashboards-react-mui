@@ -2,8 +2,6 @@ import { Form, Formik } from 'formik'
 import * as Yup from 'yup'
 import users from '../data/users.json'
 import { useNavigate } from 'react-router-dom'
-import { AuthContext } from '../contexts/AuthContext'
-import { useContext } from 'react'
 import {
   Container,
   Typography,
@@ -12,16 +10,15 @@ import {
   Button,
   Box
 } from '@mui/material';
-import { useCallback,useState } from 'react'
+import { useCallback } from 'react'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
+import { useAuthContext } from '../hooks/UseAuthContext'
+import { useClick } from '../hooks/UseClick'
 
 export const Login = () => {
     const navigate = useNavigate()
-    const authContext = useContext(AuthContext)
-    if(!authContext) throw new Error('auth context not defined')
-    const {login} = authContext
-
+    const {login} = useAuthContext()
     interface loginFields{
         email: string,
         password: string
@@ -54,7 +51,7 @@ export const Login = () => {
         navigate('/')
     }, [login, navigate])
 
-    const [showPassword, setShowPassword] = useState(false)
+    const [showPassword, togglePassword] = useClick(false)
 
     return(
         <Container maxWidth="xs" sx={{display:'grid', minHeight:'90vh', alignContent:'center'}}>
@@ -92,7 +89,7 @@ export const Login = () => {
                                         width: '10%',
                                         left: '16rem'
                                     }}
-                                    onClick={()=> setShowPassword(old => !old)}
+                                    onClick={togglePassword}
                                 >
                                     {showPassword === false ? <VisibilityOffIcon /> : <VisibilityIcon />}
                                 </Button>

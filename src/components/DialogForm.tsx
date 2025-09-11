@@ -7,7 +7,6 @@ import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import { Formik, Form, FormikValues } from 'formik'
 import { storage } from '../lib/storage'
-import { Dispatch, SetStateAction } from 'react'
 import * as Yup from 'yup'
 
 interface props<T>{
@@ -21,7 +20,7 @@ interface props<T>{
     setFailedAction: (value: boolean)=> void,
     array: T[],
     arrayName: string, 
-    setArray: Dispatch<SetStateAction<T[]>>, 
+    updateArray: (item: T[]) => void, 
     item?: T | undefined, 
     courseId?: string, 
     mode: 'add' | 'edit'
@@ -31,7 +30,7 @@ export const DialogForm = <T extends FormikValues>(
     {
         formTitle, condition, setCondition, initialValues, 
         validationSchema, setSuccessAction, setFailedAction,
-        array, arrayName, setArray, item, courseId, mode
+        array, arrayName, updateArray, item, courseId, mode
         //array -> students / enrollments / courses
         //arrayName string like the name of item was stored in local storage
         //item for edit operation
@@ -76,7 +75,7 @@ export const DialogForm = <T extends FormikValues>(
 
     const saveToLocalStorageAndShowSuccessMessage = (arrayName: string, updatedArray: T[])=>{
        storage.setItem(arrayName, updatedArray)
-       setArray(updatedArray)
+       updateArray(updatedArray)
        setSuccessAction(true)
     }
 
@@ -123,7 +122,7 @@ export const DialogForm = <T extends FormikValues>(
                                     onChange={handleChange}
                                     //Object.keys(errors)[0] == fieldName --> only the first wrong field value will shown -- best UI practise
                                     error={Boolean(Object.keys(errors)[0] == fieldName && touched[fieldName] && errors[fieldName])}
-                                    helperText={Boolean(Object.keys(errors)[0] == fieldName && touched[fieldName] && errors[fieldName])}
+                                    helperText={(Object.keys(errors)[0] == fieldName && touched[fieldName] && typeof errors[fieldName] === "string") ? errors[fieldName] : ''}
                                 />
                             </Box>
                         )}

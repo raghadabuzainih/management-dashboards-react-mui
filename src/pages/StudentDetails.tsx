@@ -2,8 +2,6 @@ import { useParams } from "react-router-dom"
 import users from '../data/users.json'
 import enrollments from '../data/enrollments.json'
 import courses from '../data/courses.json'
-import { AuthContext } from '../contexts/AuthContext'
-import { useContext } from 'react'
 import {
   Container,
   Typography,
@@ -18,12 +16,11 @@ import { Enrollment } from "../types/Enrollment"
 import { Course } from "../types/Course"
 
 import { Role, User } from "../types/User"
+import { useAuthContext } from "../hooks/UseAuthContext";
 const allUsers = users as User[]
 
 const StudentDetails = () => {
-    const authContext = useContext(AuthContext)
-    if(!authContext) throw new Error('auth context not defined')
-    const {userEmail}= authContext
+    const {userEmail}= useAuthContext()
     const students: Student[] = storage.getItem('students') || users.filter(({role}) => role == 'Student')
     const savedEnrollments: Enrollment[] = storage.getItem('enrollments') || enrollments
     const savedCourses: Course[] = storage.getItem('courses') || courses

@@ -2,19 +2,20 @@ import Box from "@mui/material/Box"
 import { AppBarComp } from "./AppBarComp"
 import { DrawerComp } from "./DrawerComp"
 import { Outlet } from "react-router-dom"
-import { useState, useCallback } from "react"
+import { useCallback } from "react"
+import { useClick } from "../hooks/UseClick"
 
 export const AppBarAndDrawer= () => {
-    const [isDrawerOpen, setIsDrawerOpen]= useState<boolean>(false)
+    const [isDrawerOpen, toggleDrawer] = useClick(false)
     const handleToggleDrawer = useCallback(()=> {
-        setIsDrawerOpen(prev => !prev)
-    }, [])
+        toggleDrawer()
+    }, [toggleDrawer])
     return (
     <>
         <AppBarComp onToggleDrawer={handleToggleDrawer}/>
         <DrawerComp 
             open={isDrawerOpen} 
-            onClose={()=> setIsDrawerOpen(false)}
+            onClose={toggleDrawer}
         />
         <Box sx={{mt: 3}}>
             <Outlet />
