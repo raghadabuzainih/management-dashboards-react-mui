@@ -1,7 +1,6 @@
-import enrollments from '../data/enrollments.json'
 import users from '../data/users.json'
 import courses from '../data/courses.json'
-import React from 'react'
+import { ReactNode } from 'react'
 import * as Yup from 'yup'
 import { DialogForm } from '../components/DialogForm'
 import { SuccessOrFailMessage } from '../components/SuccessOrFailMessage'
@@ -30,13 +29,16 @@ import { Course } from '../types/Course'
 
 import { Role } from '../types/User'
 import { useAuthContext } from '../hooks/UseAuthContext'
-import { useArray } from '../hooks/UseArray'
 import { useDialogs } from '../hooks/UseDialogs'
 import { useSelectedID } from '../hooks/UseSelectedID'
 
-const Enrollments = () => {
+import { useAppDispatch, useAppSelector } from '../store/hooks'
+import {removeByID} from '../store/enrollmentsSlice'
+
+const Enrollments = () : ReactNode => {
     const {userEmail}= useAuthContext()
-    const [savedEnrollments, update] = useArray<Enrollment>(enrollments, 'enrollments')
+    const enrollments = useAppSelector(state => state.enrollments)
+    const dispatch = useAppDispatch()
 
     const students: Student[] = storage.getItem('students') || users.filter(({role}) => role === 'Student') 
     let savedCourses: Course[] = storage.getItem('courses') || courses
@@ -44,7 +46,7 @@ const Enrollments = () => {
     const [dialogs, updateCondition] = useDialogs()
     //store enrollmentId for edit/delete operations
     const [enrollmentId, updateID] = useSelectedID()
-    let enrollment = useMemo(()=> savedEnrollments.find(({id}) => id === enrollmentId), [savedEnrollments, enrollmentId])
+    let enrollment = useMemo(()=> enrollments.find(({id}) => id === enrollmentId), [enrollments, enrollmentId])
     //show student name in edit/delete enrollment dialog title
     let editedOrDeletedStudent = useMemo(()=> students.find(({id})=> id === enrollment?.studentId), [students, enrollment])
     let editedOrDeletedStudentName = editedOrDeletedStudent?.firstName + " " + editedOrDeletedStudent?.lastName
@@ -60,7 +62,8 @@ const Enrollments = () => {
     //we will use these lines to make courses enrollments cards
     const enrollmentsMap = useMemo(()=> {
         let map = new Map() //using map to make key always unique
-        savedEnrollments.map(en => {
+        enrollments.map(en => {
+            console.log(en)
             let courseName = savedCourses.find(course => course.id === en.courseId)?.title
             let student: Student | undefined = students.find(st => st.id === en.studentId)
             if(!student) throw new Error('student not defined')
@@ -76,7 +79,7 @@ const Enrollments = () => {
             if(!map.has(course.title)) map.set(course.title, null)
         })
         return map
-    }, [savedCourses, students, savedEnrollments])
+    }, [savedCourses, students, enrollments])
 
     let enrollmentsMapToCards = Array.from(enrollmentsMap.entries()).map(([courseName, enrollment]) => {
         return(
@@ -189,7 +192,7 @@ const Enrollments = () => {
             .test('existStudent', 'student not exist', (value)=> {return students.find(({id})=> id === value) !== undefined})
             //prevent repeated enrollment if the student enrolled before at the same course(instedof it: edit his progress)
             .test('enrolledBefore', 'student enrolled before', (value)=> {
-                const courseEnrollments = savedEnrollments.filter(({courseId}) => courseId === courseID)
+                const courseEnrollments = enrollments.filter(({courseId}) => courseId === courseID)
                 return courseEnrollments.find(({studentId})=> studentId === value) === undefined
             }),
         progress: Yup.number().required('enter progress')
@@ -199,9 +202,7 @@ const Enrollments = () => {
 
     function deleteEnrollment(){
         updateCondition({type: 'isDeleteClicked', value: false}) //to close delete dialog
-        const updatedEnrollments = savedEnrollments.filter(({id})=> id != enrollmentId)
-        storage.setItem('enrollments', updatedEnrollments)
-        update(updatedEnrollments)
+        dispatch(removeByID(enrollmentId))
         updateCondition({ type: "openSuccessDeleted", value: true })
     }
     
@@ -225,9 +226,8 @@ const Enrollments = () => {
                         validationSchema = {editFormValidationSchema}
                         setSuccessAction ={(value)=> updateCondition({type: 'openSuccessEdited', value: value})}
                         setFailedAction ={(value)=> updateCondition({type: 'openFailedEdited', value: value})}
-                        array= {savedEnrollments}
+                        array= {enrollments}
                         arrayName= 'enrollments'
-                        updateArray= {update}
                         item= {enrollment}
                         mode= 'edit'
                     />
@@ -254,9 +254,8 @@ const Enrollments = () => {
                         validationSchema = {addFormValidationSchema}
                         setSuccessAction={(value) => updateCondition({ type: "openSuccessAdded", value })}
                         setFailedAction={(value) => updateCondition({ type: "openFailedAdded", value })}
-                        array= {savedEnrollments}
+                        array= {enrollments}
                         arrayName = 'enrollments'
-                        updateArray= {update}
                         courseId ={courseID}
                         mode= 'add'
                     />

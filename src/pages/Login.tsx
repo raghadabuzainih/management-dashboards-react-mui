@@ -10,13 +10,13 @@ import {
   Button,
   Box
 } from '@mui/material';
-import { useCallback } from 'react'
+import { ReactNode, useCallback } from 'react'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import { useAuthContext } from '../hooks/UseAuthContext'
 import { useClick } from '../hooks/UseClick'
 
-export const Login = () => {
+export const Login = () : ReactNode => {
     const navigate = useNavigate()
     const {login} = useAuthContext()
     interface loginFields{

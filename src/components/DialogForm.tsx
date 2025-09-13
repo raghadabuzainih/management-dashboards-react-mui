@@ -8,6 +8,16 @@ import Button from '@mui/material/Button'
 import { Formik, Form, FormikValues } from 'formik'
 import { storage } from '../lib/storage'
 import * as Yup from 'yup'
+import {add as addNewCourse} from '../store/coursesSlice'
+import {add as addNewEnrollment} from '../store/enrollmentsSlice'
+import {add as addNewStudent} from '../store/studentsSlice'
+import {editItem as editCourse} from '../store/coursesSlice'
+import {editItem as editStudent} from '../store/studentsSlice'
+import {editItem as editEnrollment} from '../store/enrollmentsSlice'
+import { useAppDispatch } from '../store/hooks'
+import { Student } from '../types/Student'
+import { Enrollment } from '../types/Enrollment'
+import { Course } from '../types/Course'
 
 interface props<T>{
     formTitle: string,
@@ -20,7 +30,6 @@ interface props<T>{
     setFailedAction: (value: boolean)=> void,
     array: T[],
     arrayName: string, 
-    updateArray: (item: T[]) => void, 
     item?: T | undefined, 
     courseId?: string, 
     mode: 'add' | 'edit'
@@ -30,13 +39,15 @@ export const DialogForm = <T extends FormikValues>(
     {
         formTitle, condition, setCondition, initialValues, 
         validationSchema, setSuccessAction, setFailedAction,
-        array, arrayName, updateArray, item, courseId, mode
+        array, arrayName, item, courseId, mode
         //array -> students / enrollments / courses
         //arrayName string like the name of item was stored in local storage
         //item for edit operation
         //courseId for enrollment addForm
         //mode --> add/edit
     }: props<T>) => {
+        
+    const dispatch = useAppDispatch()
 
     const saveEdit = (values: Partial<T>, errors: Partial<Record<keyof T, string>>) => {
         setCondition(false)
@@ -44,15 +55,14 @@ export const DialogForm = <T extends FormikValues>(
             setFailedAction(true)
             return
         }
-
-        let updatedArray = array.map(x => {
-            if(x == item) return {...item, ...values} as T //because enrollment edit form contains only progress
-            return x
-        })
-        saveToLocalStorageAndShowSuccessMessage(arrayName, updatedArray)
+        if(!item) throw new Error('item not defined')
+        if(arrayName === 'students') dispatch(editStudent({item: item as unknown as Student, values: values as Partial<Student>}))
+        else if(arrayName === 'courses') dispatch(editCourse({item: item as unknown as Course, values: values as Partial<Course>}))
+        else if(arrayName === 'enrollments') dispatch(editEnrollment({item: item as unknown as Enrollment, values: values as Partial<Enrollment>}))
+        setSuccessAction(true)
     }
 
-    const addNewItem = (values: Partial<T>, errors: Partial<Record<keyof T, string>>) => {
+    const addNewItem = (values: any, errors: Partial<Record<keyof T, string>>) => {
         for(let key of Object.keys(values)){
             //if there is at least one item null
             if(!values[key]) return
@@ -63,20 +73,17 @@ export const DialogForm = <T extends FormikValues>(
             setFailedAction(true)
             return
         }
-        let newItem = arrayName === 'enrollments' ? 
-                      {
-                        id: `enr_${array.length}`,
-                        courseId: courseId,
-                        ...values
-                      } : values
-        let updatedArray = [...array, newItem] as T[]
-        saveToLocalStorageAndShowSuccessMessage(arrayName, updatedArray)
-    }
-
-    const saveToLocalStorageAndShowSuccessMessage = (arrayName: string, updatedArray: T[])=>{
-       storage.setItem(arrayName, updatedArray)
-       updateArray(updatedArray)
-       setSuccessAction(true)
+        if(arrayName === 'students') dispatch(addNewStudent(values as Student))
+        else if(arrayName === 'courses') dispatch(addNewCourse(values as Course))
+        else if(arrayName === 'enrollments'){
+            const newItem = {
+                                id: `enr_${array.length}`,
+                                courseId: courseId,
+                                ...values
+                            }
+            dispatch(addNewEnrollment(newItem as Enrollment))
+        }
+        setSuccessAction(true)
     }
 
     return (

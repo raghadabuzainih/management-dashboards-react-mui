@@ -1,7 +1,6 @@
 import * as Yup from 'yup'
-import React from "react"
+import React, { ReactNode } from "react"
 import users from '../data/users.json'
-import courses from '../data/courses.json'
 import { SuccessOrFailMessage } from "../components/SuccessOrFailMessage"
 import { DialogForm } from "../components/DialogForm"
 import Accordion from "@mui/material/Accordion"
@@ -18,7 +17,6 @@ import DialogContentText from "@mui/material/DialogContentText"
 import Fab from "@mui/material/Fab"
 import Box from "@mui/material/Box"
 import Grid from "@mui/material/Grid"
-import { storage } from '../lib/storage'
 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AddIcon from '@mui/icons-material/Add'
@@ -28,20 +26,23 @@ import { AccessPage } from '../components/AccessPage'
 import { Course } from '../types/Course'
 import { User, Role } from '../types/User'
 import { useAuthContext } from '../hooks/UseAuthContext'
-import { useArray } from '../hooks/UseArray'
 import { useDialogs } from '../hooks/UseDialogs'
 import { useSelectedID } from '../hooks/UseSelectedID'
 
+import { useAppSelector, useAppDispatch } from '../store/hooks'
+import { removeByID } from '../store/coursesSlice'
+
 const allUsers = users as User[]
 
-const Courses = () => {
+const Courses = () : ReactNode => {
     const {userEmail} = useAuthContext()
-    const [allCourses, updateCourses] = useArray<Course>(courses, 'courses')
+    const courses = useAppSelector(state => state.courses)
+    const dispatch = useAppDispatch()
     const [dialogs, updateCondition] = useDialogs()
     //store course id for edit & delete dialogs
     const [courseId, updateCourseID] = useSelectedID()
     //get data of the course to show it in edit dialog at the first time(initialValues)
-    let course: Course | undefined = allCourses.find(({id}) => id === courseId)
+    let course: Course | undefined = courses.find(({id}) => id === courseId)
 
     const initialEditFormValues: Course = {
         id: course?.id || '',
@@ -52,7 +53,7 @@ const Courses = () => {
     }
 
     const initialAddFormValues: Course = {
-        id: `crs_0${allCourses.length+1}`,
+        id: `crs_0${courses.length+1}`,
         title: "",
         instructorId: "",
         hours: 0,
@@ -69,7 +70,7 @@ const Courses = () => {
             .matches(englishWithNumsAndSymbols, 'write in english please')
             .test('unique', 'enter unique id', (value) => 
             //x != course -> because maybe admin rewrite the same id for the same course & gave it enter unique id
-            allCourses.find(x => x.id === value && x != course) === undefined)
+            courses.find(x => x.id === value && x != course) === undefined)
             .test('valid', 'it must start by crs_ and 3 numbers', (value)=> 
             //check if it's unique
             //assume that id start from crs_001 to crs_999
@@ -91,7 +92,7 @@ const Courses = () => {
                .max(100, 'must be <= 100')         
     })
 
-    const coursesInLists = React.useMemo(()=> allCourses.map((course, index) => {
+    const coursesInLists = React.useMemo(()=> courses.map((course, index) => {
         const instructor: User | undefined = allUsers.find(({id})=> id === course.instructorId)
         if(!instructor) throw new Error('instructor is not defined')
         const instructorFullName = instructor.firstName + " " + instructor.lastName
@@ -132,14 +133,12 @@ const Courses = () => {
                 </Accordion>
             </Grid>
         )
-    }), [allCourses])
+    }), [courses])
 
     function deleteCourse(){
-        const coursesAfterDelete: Course[] = allCourses.filter(course => course.id != courseId)
-        storage.setItem('courses', coursesAfterDelete)
-        updateCourses(coursesAfterDelete)
-        updateCondition({ type: 'isDeleteClicked', value: true })
+        updateCondition({ type: 'isDeleteClicked', value: false })
         updateCondition({ type: 'openSuccessDeleted', value: true })
+        dispatch(removeByID(courseId))
     }
 
     return(
@@ -161,9 +160,8 @@ const Courses = () => {
                     validationSchema = {commonValidation}
                     setSuccessAction ={(value)=> updateCondition({type: 'openSuccessEdited', value: value})}
                     setFailedAction ={(value)=> updateCondition({type: 'openFailedEdited', value: value})}
-                    array= {allCourses}
+                    array= {courses}
                     arrayName= 'courses'
-                    updateArray= {updateCourses}
                     item= {course}
                     mode= 'edit'
                 />
@@ -209,9 +207,8 @@ const Courses = () => {
                     validationSchema = {commonValidation}
                     setSuccessAction ={(value)=> updateCondition({type: 'openSuccessAdded', value: value})}
                     setFailedAction ={(value)=> updateCondition({type: 'openFailedAdded', value: value})}
-                    array= {allCourses}
+                    array= {courses}
                     arrayName = 'courses'
-                    updateArray= {updateCourses}
                     mode= 'add'
                 />
                 {/* successful add */}

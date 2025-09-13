@@ -15,7 +15,7 @@ import {
 } from 'chart.js';
 //every import will put in:
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend)
-import { useMemo } from 'react'
+import { ReactNode, useMemo } from 'react'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Container from '@mui/material/Container'
@@ -29,7 +29,7 @@ import { useAuthContext } from '../hooks/UseAuthContext'
 
 const allUsers = users as User[]
 
-const Reports = () => {
+const Reports = () : ReactNode => {
     const {userEmail}= useAuthContext()
     let savedCourses: Course[] = storage.getItem('courses') || courses
     let savedEnrollments: Enrollment[] = storage.getItem('enrollments') || enrollments

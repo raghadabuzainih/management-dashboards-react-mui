@@ -17,9 +17,10 @@ import { Course } from "../types/Course"
 
 import { Role, User } from "../types/User"
 import { useAuthContext } from "../hooks/UseAuthContext";
+import { ReactNode } from "react";
 const allUsers = users as User[]
 
-const StudentDetails = () => {
+const StudentDetails = () : ReactNode => {
     const {userEmail}= useAuthContext()
     const students: Student[] = storage.getItem('students') || users.filter(({role}) => role == 'Student')
     const savedEnrollments: Enrollment[] = storage.getItem('enrollments') || enrollments

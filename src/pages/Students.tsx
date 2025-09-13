@@ -1,5 +1,4 @@
-import React from 'react'
-import users from '../data/users.json'
+import { ReactNode } from 'react'
 //there is a relation between students & enrollments...
 //so any delete on students will affect on enrollments
 //--> add new student or edit not effect because add/edit forms contain info like info in users.json
@@ -27,15 +26,18 @@ import {Role} from '../types/User'
 import { Student } from '../types/Student'
 import { Enrollment } from '../types/Enrollment'
 import { useAuthContext } from '../hooks/UseAuthContext'
-import { useArray } from '../hooks/UseArray'
 import { useDialogs } from '../hooks/UseDialogs'
 import { useSelectedID } from '../hooks/UseSelectedID'
 
-const Students = () => {
+import { useAppSelector, useAppDispatch } from '../store/hooks'
+import {removeByID} from '../store/studentsSlice'
+
+const Students = () : ReactNode => {
     const navigate = useNavigate()
     const {userEmail}= useAuthContext()
-    const [students, update] = useArray<Student>(users.filter(({role}) => role == Role.Student) as Student[], 'students')
-    
+    const students = useAppSelector(state => state.students)
+    const dispatch = useAppDispatch()
+
         //run only the first time
     if(storage.getItem('enrollments') == null){
         storage.setItem('enrollments', enrollments)
@@ -166,13 +168,11 @@ const Students = () => {
     }
 
     function deleteStudent(): void{
-        const studentsAfterDelete: Student[] = students.filter(student => student.id != studentId)
-        storage.setItem('students', studentsAfterDelete)
+        dispatch(removeByID(studentId))
         const savedEnrollments: Enrollment[] = storage.getItem('enrollments')
         //delete all student enrollments because this student will deleted from students
         const updatedEnrollments: Enrollment[] = savedEnrollments.filter(en => en.studentId != studentId)
         storage.setItem('enrollments', updatedEnrollments)
-        update(studentsAfterDelete)
         updateCondition({ type: "isDeleteClicked", value: false })
         updateCondition({ type: "openSuccessDeleted", value: true })
     }
@@ -206,7 +206,6 @@ const Students = () => {
                         setFailedAction ={(value)=> updateCondition({type: 'openFailedEdited', value: value})}
                         array= {students}
                         arrayName= 'students'
-                        updateArray= {update}
                         item= {student}
                         mode= 'edit'
                     />
@@ -257,7 +256,6 @@ const Students = () => {
                         setFailedAction={(value) => updateCondition({ type: "openFailedAdded", value })}
                         array={students}
                         arrayName='students'
-                        updateArray={update}
                         mode='add'
                     />
                     {/* successful add */}

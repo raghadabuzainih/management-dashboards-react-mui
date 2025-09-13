@@ -1,7 +1,7 @@
 import users from '../data/users.json'
 import enrollments from '../data/enrollments.json'
 import courses from '../data/courses.json'
-import { useMemo } from "react"
+import { ReactNode, useMemo } from "react"
 import {
   Card,
   CardContent,
@@ -22,7 +22,7 @@ import { Course } from '../types/Course'
 import { Role } from '../types/User'
 import { useAuthContext } from '../hooks/UseAuthContext';
 
-export const Dashboard = () => {
+export const Dashboard = () : ReactNode => {
     const navigate = useNavigate()
     const {userEmail}= useAuthContext()
     const students: Student[] = storage.getItem('students') || users.filter(({role}) => role == 'Student')
