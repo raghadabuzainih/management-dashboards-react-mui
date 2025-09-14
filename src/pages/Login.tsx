@@ -69,7 +69,7 @@ export const Login = () : ReactNode => {
                                     onBlur={handleBlur}
                                     onChange={handleChange}
                                     error={Boolean(Object.keys(errors)[0] == 'email' && touched.email && errors.email)}
-                                    helperText={(Object.keys(errors)[0] == 'email' && touched.email && errors.email)? errors.email : ''}
+                                    helperText={Boolean(Object.keys(errors)[0] == 'email' && touched.email && errors.email)? errors.email : ''}
                                 />
                                 <TextField
                                     type={`${showPassword === false ? 'password' : 'text'}`}
@@ -80,12 +80,12 @@ export const Login = () : ReactNode => {
                                     onBlur={handleBlur}
                                     onChange={handleChange}
                                     error={Boolean(Object.keys(errors)[0] == 'password' && touched.password && errors.password)}
-                                    helperText={Boolean(Object.keys(errors)[0] == 'password' && touched.password && errors.password)}
+                                    helperText={Boolean(Object.keys(errors)[0] == 'password' && touched.password && errors.password)? errors.password : ''}
                                 />
                                 <Button 
                                     sx={{
                                         position:'relative', 
-                                        bottom: '3.8rem',
+                                        bottom: '3.7rem',
                                         width: '10%',
                                         left: '16rem'
                                     }}

@@ -1,9 +1,8 @@
 import arraySlice from "./arraySlice";
-import { Role, User } from "../types/User";
 import { Student } from "../types/Student";
-import users from '../data/users.json'
+import jsonStudents from "../shared/getStudents";
 
-const students: Student[] = users.filter(({role}) => role === Role.Student) as Student[]
+const students: Student[] = jsonStudents
 const studentsSlice = arraySlice<Student>('students', students)
 
 export const {add, removeByID, editItem} = studentsSlice.actions
