@@ -1,9 +1,15 @@
-import React, { useEffect } from "react"
+import React, { ReactNode, useEffect } from "react"
 import { AuthContext } from "./AuthContext"
 import users from '../data/users.json'
+import { User } from "../types/User"
+import { UserEmail } from "../types/UserEmail"
+import { storage } from "../lib/storage"
 
-function getStoredUser(){
-    const stored = JSON.parse(localStorage.getItem('userEmail'))
+//because there is enum Role
+const allUsers = users as User[]
+
+function getStoredUser(): UserEmail | null{
+    const stored: UserEmail = storage.getItem('userEmail')
     if(!stored) return null
     else{
         if(new Date().getTime() > stored.expiry){
@@ -13,21 +19,27 @@ function getStoredUser(){
     }
 }
 
-export const AuthProvider = ({children})=>{
-    const [userEmail, setUserEmail] = React.useState(getStoredUser)
+interface AuthProviderProps{
+    children: ReactNode
+}
 
-    const login = (email)=>{
+export const AuthProvider: React.FC<AuthProviderProps> = ({children})=>{
+    const [userEmail, setUserEmail] = React.useState<UserEmail | null>(getStoredUser)
+
+    const login = (email: string): string | void=>{
+        const user: User | undefined = allUsers.find(user=> user.email === email)
+        if(!user) return
         const hours=3
-        const item = {
+        const item: UserEmail = {
             value: email,
             expiry: new Date().getTime() + (hours*60*60*1000),
-            role: users.find(user=> user.email === email).role
+            role: user.role
         }
-        localStorage.setItem('userEmail', JSON.stringify(item))
+        storage.setItem('userEmail', item)
         setUserEmail(item)
     }
     
-    const logout = ()=> {
+    const logout = (): void => {
         setUserEmail(null)
         localStorage.removeItem('userEmail')
     }

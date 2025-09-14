@@ -1,0 +1,1 @@
+export type arraySliceName = 'enrollments' | 'students' | 'courses'

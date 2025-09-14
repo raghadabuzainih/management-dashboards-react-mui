@@ -1,5 +1,4 @@
-import React from 'react'
-import users from '../data/users.json'
+import { ReactNode } from 'react'
 //there is a relation between students & enrollments...
 //so any delete on students will affect on enrollments
 //--> add new student or edit not effect because add/edit forms contain info like info in users.json
@@ -8,9 +7,7 @@ import enrollments from '../data/enrollments.json'
 import * as Yup from 'yup'
 import { DialogForm } from '../components/DialogForm'
 import { SuccessOrFailMessage } from '../components/SuccessOrFailMessage'
-import { AuthContext } from '../contexts/AuthContext'
-import { useContext, useReducer } from 'react'
-import { DataGrid } from '@mui/x-data-grid'
+import { DataGrid, GridRenderCellParams, GridColDef } from '@mui/x-data-grid'
 import {
   Box,
   Button,
@@ -25,38 +22,33 @@ import { ModeEdit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui
 import { AccessPage } from '../components/AccessPage'
 import { useNavigate } from 'react-router-dom'
 import { storage } from '../lib/storage'
+import {Role} from '../types/User'
+import { Student } from '../types/Student'
+import { Enrollment } from '../types/Enrollment'
+import { useAuthContext } from '../hooks/UseAuthContext'
+import { useDialogs } from '../hooks/UseDialogs'
+import { useSelectedID } from '../hooks/UseSelectedID'
 
-const Students = () => {
+import { useAppSelector, useAppDispatch } from '../store/hooks'
+import {removeByID} from '../store/studentsSlice'
+
+const Students = () : ReactNode => {
     const navigate = useNavigate()
-    const {userEmail} = useContext(AuthContext)
-    const [students, setStudents] = React.useState(storage.getItem('students') || users.filter(({role}) => role == 'Student'))
-    
+    const {userEmail}= useAuthContext()
+    const students = useAppSelector(state => state.students)
+    const dispatch = useAppDispatch()
+
         //run only the first time
     if(storage.getItem('enrollments') == null){
         storage.setItem('enrollments', enrollments)
     }
-    const [dialogs, setDialogs] = useReducer(
-        (state, action) => ({
-            ...state,
-            [action.type]: action.value
-        }),
-        {
-            isEditClicked: false,
-            openSuccessEdited: false,
-            openFailedEdited: false,
-            isAddClicked: false,
-            openSuccessAdded: false,
-            openFailedAdded: false,
-            isDeleteClicked: false,
-            openSuccessDeleted: false
-        }
-    )
+    const [dialogs, updateCondition] = useDialogs()
     //store student id for edit & delete dialogs
-    const [studentId, setStudentId] = React.useState('')
+    const [studentId, updateID] = useSelectedID()
     //get data of the student to show it in edit dialog at the first time(initialValues)
-    const student = students.find(student => student.id == studentId)
+    const student: Student | undefined = students.find(student => student.id == studentId)
 
-    const columns = [
+    const columns: GridColDef<Student>[] = [
         { field: 'id', headerName: 'ID', width: 90 },
         { field: 'firstName', headerName: 'First Name', width: 120 },
         { field: 'lastName', headerName: 'Last Name', width: 120 },
@@ -66,43 +58,44 @@ const Students = () => {
             field: 'profileURL',
             headerName: 'Profile URL',
             width: 180,
-            renderCell: (params) => (
-                <Button variant='contained' size='small' onClick={()=> navigate(params.value)}>
+            renderCell: (params: GridRenderCellParams<Student, string>) => (
+                <Button variant='contained' size='small' onClick={()=> navigate(params.value as string)}>
                     {params.value}
                 </Button>
             )
         },
         {
+            field: 'actions',
             headerName: 'Edit / Delete',
             width: 150,
             sortable: false,
             filterable: false,
             disableColumnMenu: true,
-            renderCell: (params) => (
+            renderCell: (params: GridRenderCellParams<Student, string>) => (
                 <Box display={'flex'} gap={1}>
-                    <Button aria-label='edit student info' sx={{cursor: 'pointer'}} onClick={()=> openEditDialog(params.id)}>
+                    <Button aria-label='edit student info' sx={{cursor: 'pointer'}} onClick={()=> openEditDialog(params.id as string)}>
                         <EditIcon sx={{color: 'red'}}/>
                     </Button>
-                    <Button aria-label='delete student' sx={{cursor:'pointer'}} onClick={()=> openDeleteDialog(params.id)}>
+                    <Button aria-label='delete student' sx={{cursor:'pointer'}} onClick={()=> openDeleteDialog(params.id as string)}>
                         <DeleteIcon sx={{color: 'green'}}/>
                     </Button>
                 </Box>
             )
         }
     ]
-    const rows = students
-    const initialEditFormValues = {
-        id: student?.id, //this (?) because student undefined before we press edit button..
+    const rows: Student[] = students
+    const initialEditFormValues: Omit<Student, 'role'> = {
+        id: student?.id || '', //this (?) because student undefined before we press edit button..
                          //because we catch student id when click edit button then find the student
-        firstName: student?.firstName,
-        lastName: student?.lastName,
-        email: student?.email,
-        password: student?.password,
-        phone: student?.phone,
-        profileURL: student?.profileURL,
+        firstName: student?.firstName || '',
+        lastName: student?.lastName || '',
+        email: student?.email || '',
+        password: student?.password || '',
+        phone: student?.phone || '',
+        profileURL: student?.profileURL || '',
     }
 
-    const initialAddFormValues = {
+    const initialAddFormValues: Omit<Student, 'role'> = {
         id: `stu_0${students.length+1}`,
         firstName: "",
         lastName: "",
@@ -114,11 +107,11 @@ const Students = () => {
     }
 
     //Regular Expressions for testing: 
-    const numberRegExp = /^[0-9]+$/
-    const englishCharactersOnly = /^[A-Za-z]+$/
-    const englishCharactersAndAcceptedSpaces = /^[A-Za-z\s]+$/
-    const englishWithNumsAndSymbols = /^[A-Za-z0-9!@#$%^&*(),.?":{}|<>_\-\s]+$/
-    const phoneNumberRegExp = /^\+970-5[69]\d{7}$/
+    const numberRegExp: RegExp = /^[0-9]+$/
+    const englishCharactersOnly: RegExp = /^[A-Za-z]+$/
+    const englishCharactersAndAcceptedSpaces: RegExp = /^[A-Za-z\s]+$/
+    const englishWithNumsAndSymbols: RegExp = /^[A-Za-z0-9!@#$%^&*(),.?":{}|<>_\-\s]+$/
+    const phoneNumberRegExp: RegExp = /^\+970-5[69]\d{7}$/
 
     const commonValidation = Yup.object({
         id: Yup.string()
@@ -164,31 +157,29 @@ const Students = () => {
                     )
     })
     
-    function openEditDialog(id) {
-        setDialogs({type: 'isEditClicked', value: true})
-        setStudentId(id)
+    function openEditDialog(id: string): void {
+        updateCondition({type: 'isEditClicked', value: true})
+        updateID(id)
     }
     
-    function openDeleteDialog(id) {
-        setDialogs({type: 'isDeleteClicked', value: true})
-        setStudentId(id)
+    function openDeleteDialog(id: string): void {
+        updateCondition({type: 'isDeleteClicked', value: true})
+        updateID(id)
     }
 
-    function deleteStudent(){
-        const studentsAfterDelete = students.filter(student => student.id != studentId)
-        storage.setItem('students', studentsAfterDelete)
-        const savedEnrollments = storage.getItem('enrollments')
+    function deleteStudent(): void{
+        dispatch(removeByID(studentId))
+        const savedEnrollments: Enrollment[] = storage.getItem('enrollments')
         //delete all student enrollments because this student will deleted from students
-        const updatedEnrollments = savedEnrollments.filter(en => en.studentId != studentId)
+        const updatedEnrollments: Enrollment[] = savedEnrollments.filter(en => en.studentId != studentId)
         storage.setItem('enrollments', updatedEnrollments)
-        setStudents(studentsAfterDelete)
-        setDialogs({ type: "isDeleteClicked", value: false })
-        setDialogs({ type: "openSuccessDeleted", value: true })
+        updateCondition({ type: "isDeleteClicked", value: false })
+        updateCondition({ type: "openSuccessDeleted", value: true })
     }
 
     return (
         <Container sx={{marginTop: '4rem'}}>
-            {userEmail?.role=='Admin' ?
+            {userEmail?.role=== Role.Admin ?
                 <>
                     <DataGrid
                         rows={rows}
@@ -208,35 +199,34 @@ const Students = () => {
                     <DialogForm
                         formTitle='Edit Student Info'
                         condition={dialogs.isEditClicked}
-                        setCondition= {(value)=> setDialogs({type: 'isEditClicked', value: value})}
+                        setCondition= {(value)=> updateCondition({type: 'isEditClicked', value: value})}
                         initialValues={initialEditFormValues}
                         validationSchema = {commonValidation}
-                        setSuccessAction ={(value)=> setDialogs({type: 'openSuccessEdited', value: value})}
-                        setFailedAction ={(value)=> setDialogs({type: 'openFailedEdited', value: value})}
+                        setSuccessAction ={(value)=> updateCondition({type: 'openSuccessEdited', value: value})}
+                        setFailedAction ={(value)=> updateCondition({type: 'openFailedEdited', value: value})}
                         array= {students}
                         arrayName= 'students'
-                        setArray= {setStudents}
                         item= {student}
                         mode= 'edit'
                     />
                     {/* successful edit */}
                     <SuccessOrFailMessage
                         open={dialogs.openSuccessEdited}
-                        onClose={() => setDialogs({ type: "openSuccessEdited", value: false })}
+                        onClose={() => updateCondition({ type: "openSuccessEdited", value: false })}
                         severity="success"
                         message="Student Info edited successfully"
                     />
                     {/* failed edit */}
                     <SuccessOrFailMessage
                         open={dialogs.openFailedEdited}
-                        onClose={() => setDialogs({ type: "openFailedEdited", value: false })}
+                        onClose={() => updateCondition({ type: "openFailedEdited", value: false })}
                         severity="error"
                         message="Failed to edit student info"
                     />
                     {/* delete dialog */}
                     <Dialog 
                         open={dialogs.isDeleteClicked} 
-                        onClose={() => setDialogs({ type: "isDeleteClicked", value: false })}
+                        onClose={() => updateCondition({ type: "isDeleteClicked", value: false })}
                     >
                         <DialogContent>
                             <DialogContentText>
@@ -245,13 +235,13 @@ const Students = () => {
                         </DialogContent>
                         <DialogActions>
                             <Button onClick={() => deleteStudent()}>Yes</Button>
-                            <Button onClick={() => setDialogs({ type: "isDeleteClicked", value: false })}>No</Button>
+                            <Button onClick={() => updateCondition({ type: "isDeleteClicked", value: false })}>No</Button>
                         </DialogActions>
                     </Dialog>
                     {/* successful delete */}
                     <SuccessOrFailMessage
                         open={dialogs.openSuccessDeleted}
-                        onClose={() => setDialogs({ type: "openSuccessDeleted", value: false })}
+                        onClose={() => updateCondition({ type: "openSuccessDeleted", value: false })}
                         severity="success"
                         message="Student deleted successfully"
                     />
@@ -259,32 +249,31 @@ const Students = () => {
                     <DialogForm
                         formTitle='Add New Student'
                         condition={dialogs.isAddClicked}
-                        setCondition={(value) => setDialogs({ type: "isAddClicked", value })}
+                        setCondition={(value) => updateCondition({ type: "isAddClicked", value })}
                         initialValues={initialAddFormValues}
                         validationSchema={commonValidation}
-                        setSuccessAction={(value) => setDialogs({ type: "openSuccessAdded", value })}
-                        setFailedAction={(value) => setDialogs({ type: "openFailedAdded", value })}
+                        setSuccessAction={(value) => updateCondition({ type: "openSuccessAdded", value })}
+                        setFailedAction={(value) => updateCondition({ type: "openFailedAdded", value })}
                         array={students}
                         arrayName='students'
-                        setArray={setStudents}
                         mode='add'
                     />
                     {/* successful add */}
                     <SuccessOrFailMessage
                         open={dialogs.openSuccessAdded}
-                        onClose={() => setDialogs({ type: "openSuccessAdded", value: false })}
+                        onClose={() => updateCondition({ type: "openSuccessAdded", value: false })}
                         severity="success"
                         message="Student added successfully"
                     />
                     {/* failed add */}
                     <SuccessOrFailMessage
                         open={dialogs.openFailedAdded}
-                        onClose={() => setDialogs({ type: "openFailedAdded", value: false })}
+                        onClose={() => updateCondition({ type: "openFailedAdded", value: false })}
                         severity="error"
                         message="Failed to add new student"
                     />
                     <Box sx={{position:'fixed', bottom:'3%', right:'2%'}}>
-                        <Fab aria-label='add student' color='primary' onClick={() => setDialogs({ type: "isAddClicked", value: true })}>
+                        <Fab aria-label='add student' color='primary' onClick={() => updateCondition({ type: "isAddClicked", value: true })}>
                             <AddIcon />
                         </Fab>
                     </Box>

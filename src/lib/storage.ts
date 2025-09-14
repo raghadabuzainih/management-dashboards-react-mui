@@ -1,15 +1,16 @@
 export const storage = {
-    getItem: (key) => {
+    getItem: (key: string) => {
         try{
             return JSON.parse(localStorage.getItem(key) || 'null')
         }catch{
             return null
         }
     },
-    setItem: (key, value) => {
+    // | string because mode value is string -> ('light' | 'dark')
+    setItem: (key: string, value: object | string) => {
         localStorage.setItem(key, JSON.stringify(value))
     },
-    removeItem: (key) => {
+    removeItem: (key: string) => {
         localStorage.removeItem(key)
     }
 }

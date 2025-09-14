@@ -15,28 +15,31 @@ import {
 } from 'chart.js';
 //every import will put in:
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend)
-import { AuthContext } from '../contexts/AuthContext'
-import { useContext, useMemo } from 'react'
-import {
-  Card,
-  CardContent,
-  Container,
-  Grid
-} from '@mui/material'
+import { ReactNode, useMemo } from 'react'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Container from '@mui/material/Container'
+import { GridLegacy as Grid } from "@mui/material";
 import { AccessPage } from '../components/AccessPage'
 import { storage } from '../lib/storage'
+import { Course } from '../types/Course'
+import { Enrollment } from '../types/Enrollment'
+import { User,Role } from '../types/User'
+import { useAuthContext } from '../hooks/UseAuthContext'
 
-const Reports = () => {
-    const {userEmail} = useContext(AuthContext)
-    let savedCourses = storage.getItem('courses') || courses
-    let savedEnrollments = storage.getItem('enrollments') || enrollments
+const allUsers = users as User[]
+
+const Reports = () : ReactNode => {
+    const {userEmail}= useAuthContext()
+    let savedCourses: Course[] = storage.getItem('courses') || courses
+    let savedEnrollments: Enrollment[] = storage.getItem('enrollments') || enrollments
     //1- students/courses chart info: 
-    let coursesNames = savedCourses.map(course => { return course.title })
-    let coursesIDs = savedCourses.map(course => { return course.id })
-    let studentCountsPerCourse = useMemo (()=> coursesIDs.map(courseID => {
+    let coursesNames: string[] = savedCourses.map(course => { return course.title })
+    let coursesIDs: string[] = savedCourses.map(course => { return course.id })
+    let studentCountsPerCourse: number[] = useMemo (()=> coursesIDs.map(courseID => {
         return savedEnrollments.filter(({courseId}) => courseId == courseID).length
     }), [coursesIDs, savedEnrollments])
-    const bgColors = coursesNames.map(()=>{
+    const bgColors: string[] = coursesNames.map(()=>{
         return `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`
     })
     const data = {
@@ -68,13 +71,13 @@ const Reports = () => {
         }
     }
     //2- courses/instructors chart info: 
-    let instructors = users.filter(user => user.role == 'Instructor')
-    let instructorsNames = instructors.map(inst => {return inst.firstName + " " + inst.lastName})
-    let instructorsIDs = instructors.map(inst => {return inst.id})
-    let coursesCountsPerInstructor = useMemo(()=> instructorsIDs.map(instructorID => {
+    let instructors: User[] = allUsers.filter(user => user.role === Role.Instructor)
+    let instructorsNames: string[] = instructors.map(inst => {return inst.firstName + " " + inst.lastName})
+    let instructorsIDs: string[] = instructors.map(inst => {return inst.id})
+    let coursesCountsPerInstructor: number[] = useMemo(()=> instructorsIDs.map(instructorID => {
         return savedCourses.filter(({instructorId}) => instructorId == instructorID).length
     }), [instructorsIDs, savedCourses])
-    const bgColors2 = instructorsNames.map(()=>{
+    const bgColors2: string[] = instructorsNames.map(()=>{
         return `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`
     })
     const data2 = {
@@ -91,14 +94,14 @@ const Reports = () => {
         maintainAspectRatio: false,
         plugins: {
             title: { display: true, text: "Number of Courses per Instructor" },
-            legend: {position: 'bottom'}
+            legend: {position: 'bottom' as 'bottom'}
         },
         scales: {
             y: { ticks: { stepSize: 1 } }
         }
     }
 
-    let enrollmentsCountsPerCourse = []
+    let enrollmentsCountsPerCourse: number[] = []
     savedCourses.forEach(course=>{
         enrollmentsCountsPerCourse.push(savedEnrollments.filter(({courseId})=> courseId == course.id).length)
     })
@@ -116,7 +119,7 @@ const Reports = () => {
         maintainAspectRatio: false,
         plugins: {
             title: { display: true, text: "Number of Enrollments per Course" },
-            legend: {position: 'bottom'}
+            legend: {position: 'bottom' as 'bottom'} //not accept any type of string
         },
         scales: {
             y: { ticks: { stepSize: 1 } }
@@ -125,7 +128,7 @@ const Reports = () => {
 
     return(
         <Container sx={{display:'grid', gap:'3%', marginTop:'4rem',marginBottom: '3%'}}>
-            {userEmail?.role == 'Admin' ?
+            {userEmail?.role == Role.Admin ?
             <>
                 {/* students/courses */}
                 <Card sx={{paddingBottom: '2rem'}}>

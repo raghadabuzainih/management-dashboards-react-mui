@@ -1,6 +1,6 @@
-import { createTheme } from "@mui/material/styles"
+import { createTheme, Theme } from "@mui/material/styles"
 
-export const BuildTheme = (mode = 'light')=> createTheme({
+export const BuildTheme = (mode: 'light' | 'dark' = 'light'): Theme=> createTheme({
     palette: {
         mode,
         //optional

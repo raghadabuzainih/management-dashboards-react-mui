@@ -1,7 +1,11 @@
 import { Typography } from "@mui/material"
 import { Link } from "react-router-dom"
 
-export const AccessPage = ({message})=>{
+interface props{
+    message: string
+}
+
+export const AccessPage = ({message}: props)=>{
     return(
         <Typography 
             component={'h1'}

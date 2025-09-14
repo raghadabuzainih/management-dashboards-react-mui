@@ -11,7 +11,7 @@ const Reports = lazy(()=> import('../pages/Reports'))
 import { AccessPage } from '../components/AccessPage'
 import {Box, CircularProgress} from "@mui/material"
 
-export const AppRoutes = () => {
+export const AppRoutes= () => {
     return(
         <Routes>
             <Route path='/' element={<AppBarAndDrawer/>}>

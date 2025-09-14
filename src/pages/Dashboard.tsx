@@ -1,8 +1,7 @@
 import users from '../data/users.json'
 import enrollments from '../data/enrollments.json'
 import courses from '../data/courses.json'
-import { useContext, useMemo } from "react"
-import { AuthContext } from "../contexts/AuthContext"
+import { ReactNode, useMemo } from "react"
 import {
   Card,
   CardContent,
@@ -17,17 +16,22 @@ import { AccessPage } from '../components/AccessPage'
 import { People, MenuBook, Assignment, Unpublished } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { storage } from '../lib/storage'
+import { Student } from '../types/Student'
+import { Enrollment } from '../types/Enrollment'
+import { Course } from '../types/Course'
+import { Role } from '../types/User'
+import { useAuthContext } from '../hooks/UseAuthContext';
 
-export const Dashboard = () => {
+export const Dashboard = () : ReactNode => {
     const navigate = useNavigate()
-    const {userEmail}= useContext(AuthContext)
-    const students = storage.getItem('students') || users.filter(({role}) => role == 'Student')
-    const savedEnrollments = storage.getItem('students') || enrollments
-    const savedCourses = storage.getItem('courses') || courses
+    const {userEmail}= useAuthContext()
+    const students: Student[] = storage.getItem('students') || users.filter(({role}) => role == 'Student')
+    const savedEnrollments: Enrollment[] = storage.getItem('enrollments') || enrollments
+    const savedCourses: Course[] = storage.getItem('courses') || courses
     // let progressSum = 0
     // savedEnrollments.forEach(({progress})=> progressSum += +progress)
     // another way
-    let progressSum = savedEnrollments.reduce((sum, e)=> sum + Number(e.progress), 0)
+    let progressSum: number = savedEnrollments.reduce((sum, e)=> sum + Number(e.progress), 0)
 
 
     const counts = useMemo(()=> ([
@@ -76,7 +80,7 @@ export const Dashboard = () => {
             alignItems={'center'} 
             spacing={3} 
         >
-        {userEmail?.role == 'Admin' ? 
+        {userEmail?.role == Role.Admin ? 
             <>
                 {/* Cards Section */}
                 <Grid>

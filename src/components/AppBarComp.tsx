@@ -1,18 +1,22 @@
 import {AppBar, Typography, Grid, Box, Button} from '@mui/material'
-import { useContext } from "react"
-import { AuthContext } from "../contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
 import { DarkMode, LightMode,Menu } from '@mui/icons-material'
-import { ThemeModeContext } from '../contexts/ThemeModeContext'
+import { storage } from '../lib/storage'
+import { useAuthContext } from '../hooks/UseAuthContext'
+import { useThemeModeContext } from '../hooks/UseThemeModeContext'
 
-export const AppBarComp = ({onToggleDrawer})=> {
+interface props{
+    onToggleDrawer: ()=> void
+}
+
+export const AppBarComp = ({onToggleDrawer}: props)=> {
     const navigate = useNavigate()
-    const {userEmail, logout}= useContext(AuthContext)
-    const {mode, setMode} = useContext(ThemeModeContext)
-    function handleTheme(){
-        const newTheme = mode === 'light' ? 'dark' : 'light'
+    const {userEmail, logout} = useAuthContext()
+    const {mode, setMode} = useThemeModeContext()
+    function handleTheme() : void{
+        const newTheme: 'light' | 'dark' = mode === 'light' ? 'dark' : 'light'
         setMode(newTheme)
-        localStorage.setItem('mode', newTheme)
+        storage.setItem('mode', newTheme)
     }
     return(
         <AppBar>
