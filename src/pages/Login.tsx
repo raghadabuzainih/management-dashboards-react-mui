@@ -59,7 +59,7 @@ export const Login = () : ReactNode => {
                 <Typography color='primary' variant='h5' fontWeight="fontWeightBold" marginBottom={3}>Log in</Typography>
                 <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
                     {({touched, errors, handleBlur, handleChange}) => (
-                        <Form>
+                        <Form role='form'>
                             <Grid container spacing={2} direction={'column'}>
                                 <TextField
                                     name='email'
@@ -97,7 +97,6 @@ export const Login = () : ReactNode => {
                                     type='submit' 
                                     variant='contained' 
                                     aria-label='submit login'
-                                    disabled={Object.keys(errors).length > 0 ? true : false}
                                 >
                                     Submit
                                 </Button>

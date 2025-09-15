@@ -12,7 +12,8 @@ export const AccessPage = ({message}: props)=>{
             marginTop={'30%'}
         >
             {message}
-            {message == 'Page Not Found' && <Link to={'/'}>Back to home</Link>}
+            {message === 'Page Not Found' && <Link to={'/'}>Back to home</Link>}
+            {message === "You don't have access to this page." && <Link to={'/login'}>You must log in first</Link>}
         </Typography>        
     )
 }
