@@ -63,7 +63,6 @@ const Enrollments = () : ReactNode => {
     const enrollmentsMap = useMemo(()=> {
         let map = new Map() //using map to make key always unique
         enrollments.map(en => {
-            console.log(en)
             let courseName = savedCourses.find(course => course.id === en.courseId)?.title
             let student: Student | undefined = students.find(st => st.id === en.studentId)
             if(!student) throw new Error('student not defined')

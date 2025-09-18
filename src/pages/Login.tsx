@@ -31,19 +31,19 @@ export const Login = () : ReactNode => {
     const findUserByEmail = (email: string) => users.find(user => user.email === email)
     const validationSchema = Yup.object({
         email: Yup.string()
+        .required('email is required')
                .email('invalid email')
                .test('exists', "incorrect email" , (value)=> {
                     //check if email (value) is used either by admin or student or instructor (auth)
                     return value !== undefined && findUserByEmail(value) !== undefined
-                })
-               .required('email is required'),
+                }),
         password: Yup.string()
+                  .required('password is required')
                   .test('isCorrect', 'incorrect password', function(value){
                     const {email} = this.parent
                     const user = findUserByEmail(email)
                     return user && user.password === value
                   })
-                  .required('password is required')
     })
 
     const handleSubmit = useCallback((values: loginFields)=> {
@@ -58,18 +58,18 @@ export const Login = () : ReactNode => {
             <Box sx={{p: 4, boxShadow: 3, width: '100%'}}>
                 <Typography color='primary' variant='h5' fontWeight="fontWeightBold" marginBottom={3}>Log in</Typography>
                 <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
-                    {({touched, errors, handleBlur, handleChange}) => (
-                        <Form>
+                    {({touched, errors, handleBlur, handleChange, submitCount}) => (
+                        <Form role='form'>
                             <Grid container spacing={2} direction={'column'}>
                                 <TextField
                                     name='email'
                                     label="Email"
-                                    aria-label='email feild'
+                                    aria-label='email field'
                                     variant="outlined"
                                     onBlur={handleBlur}
                                     onChange={handleChange}
-                                    error={Boolean(Object.keys(errors)[0] == 'email' && touched.email && errors.email)}
-                                    helperText={Boolean(Object.keys(errors)[0] == 'email' && touched.email && errors.email)? errors.email : ''}
+                                    error={Boolean(errors.email && (touched.email || submitCount > 0))}
+          helperText={errors.email && (touched.email || submitCount > 0) ? errors.email : ''}
                                 />
                                 <TextField
                                     type={`${showPassword === false ? 'password' : 'text'}`}
@@ -79,8 +79,8 @@ export const Login = () : ReactNode => {
                                     variant="outlined"
                                     onBlur={handleBlur}
                                     onChange={handleChange}
-                                    error={Boolean(Object.keys(errors)[0] == 'password' && touched.password && errors.password)}
-                                    helperText={Boolean(Object.keys(errors)[0] == 'password' && touched.password && errors.password)? errors.password : ''}
+                                    error={Boolean(errors.password && (touched.password || submitCount > 0))}
+          helperText={errors.password && (touched.password || submitCount > 0) ? errors.password : ''}
                                 />
                                 <Button 
                                     sx={{
@@ -97,7 +97,6 @@ export const Login = () : ReactNode => {
                                     type='submit' 
                                     variant='contained' 
                                     aria-label='submit login'
-                                    disabled={Object.keys(errors).length > 0 ? true : false}
                                 >
                                     Submit
                                 </Button>
